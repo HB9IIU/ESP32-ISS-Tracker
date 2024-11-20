@@ -11,3 +11,7 @@
 copyFirmware.py
 # Ignore the 'test' folder
 /test/
+# git rm --cached copyFirmware.py
+/forcleanup/
+# git rm --cached -r forcleanup/
+
