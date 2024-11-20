@@ -5,3 +5,4 @@
 .vscode/ipch/
 .vscode/
 .DS_Store
+!firmware/firmware.bin
