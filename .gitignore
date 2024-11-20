@@ -7,3 +7,7 @@
 .DS_Store
 *.bin  # Ignore all .bin files
 !firmware/firmware.bin  # Un-ignore the firmware.bin file you want to include
+# Ignore copyFirmware.py
+copyFirmware.py
+# Ignore the 'test' folder
+/test/
