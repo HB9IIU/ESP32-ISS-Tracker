@@ -2837,6 +2837,7 @@ void displayMainPage()
   sat.findsat(unixtime);
   Serial.println(unixtime);
 
+
   updateBigClock();
   int AZELcolor;
   // Determine AZELcolor based on nextpassInSec
