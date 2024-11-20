@@ -1,0 +1,25 @@
+Sgp4	KEYWORD1
+
+init	KEYWORD2
+site	KEYWORD2
+setsunrise	KEYWORD2
+findsat	KEYWORD2
+nextpass	KEYWORD2
+initpredpoint	KEYWORD2
+visible	KEYWORD2
+
+satLat	KEYWORD2
+satLon	KEYWORD2
+satAlt	KEYWORD2
+satAz	KEYWORD2
+satEl	KEYWORD2
+satDist	KEYWORD2
+satName	KEYWORD2
+satVis	KEYWORD2
+satJd	KEYWORD2
+sunAz	KEYWORD2
+sunEl	KEYWORD2
+line1	KEYWORD2
+line2	KEYWORD2
+
+passinfo	LITERAL2
