@@ -8,19 +8,18 @@
 #include <WiFiUdp.h>
 #include <TFT_eSPI.h>
 #include <Preferences.h> // For flash storage of TLE data
-#include <PNGdec.h>// Include the PNG decoder library
+#include <PNGdec.h>      // Include the PNG decoder library
 
 // TFT Setup
 TFT_eSPI tft = TFT_eSPI();
 // PNG decoder instance
-PNG png; 
-
+PNG png;
 
 #include "ISSsplashImage.h" // Image is stored here in an 8-bit array
 #include "worldMap.h"       // Image is stored here in an 8-bit array
 // #include "blueMap.h"        // Image is stored here in an 8-bit array
 #include "patreon.h" // Image is stored here in an 8-bit array
-
+#include "expedition72.h"
 // TLE data URL
 const char *tleUrlMain = "https://tle.ivanstanojevic.me/api/tle/25544";
 const char *tleUrlFallback = "https://live.ariss.org/iss.txt";
@@ -50,6 +49,7 @@ bool page2Displayed = false;
 bool page3Displayed = false;
 bool page4Displayed = false;
 bool page5Displayed = false;
+bool page6Displayed = false;
 
 Sgp4 sat;
 Ticker tkSecond;
@@ -87,7 +87,6 @@ void displayRawNumberRightAligned(int rightEdgeX, int y, int number, int color);
 void displayFormattedNumberRightAligned(int rightEdgeX, int y, int number, int color);
 void displayTimeRightAligned(int rightEdgeX, int y, int seconds, int color);
 void displayMainPage();
-
 void initializeTFT()
 {
   tft.init();
@@ -96,7 +95,6 @@ void initializeTFT()
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(1);
 }
-
 void TFTprint(const String &text, uint16_t color = TFT_WHITE)
 {
   // Constants for font and screen dimensions
@@ -126,7 +124,6 @@ void TFTprint(const String &text, uint16_t color = TFT_WHITE)
   // Move to the next line for subsequent calls
   currentLine++;
 }
-
 void printWelcomeMessage()
 {
 
@@ -195,7 +192,6 @@ void clearPreferences()
   preferences.end();
   Serial.println("All preferences cleared.");
 }
-
 void connectToWiFi()
 {
   int attempt = 0;
@@ -258,7 +254,6 @@ void connectToWiFi()
   }
 }
 // Function to retrieve timezone data from TimeZoneDB API
-
 void getTimezoneData()
 {
   // Inform the user that the process of getting timezone data is starting
@@ -343,7 +338,6 @@ void getTimezoneData()
   delay(1000);   // Brief delay to display the message before reboot
   ESP.restart(); // Reboot the ESP32
 }
-
 // Function to synchronize time from NTP servers
 void syncTimeFromNTP()
 {
@@ -964,6 +958,168 @@ void calculateNextPass()
   }
 }
 
+void displayAzElPlotPage()
+{
+  const int numPoints = 100; // Number of points for the plot
+  float azimuth[numPoints];
+  float elevation[numPoints];
+  unsigned long timestamps[numPoints];
+
+  unsigned long startTime = nextPassStart; // Start time (e.g., AOS)
+  unsigned long endTime = nextPassEnd;     // End time (e.g., LOS)
+  unsigned long timeStep = (endTime - startTime) / numPoints;
+
+  // Calculate azimuth and elevation over time
+  for (int i = 0; i < numPoints; i++)
+  {
+    unsigned long currentTime = startTime + i * timeStep;
+
+    sat.findsat(currentTime); // Update satellite position
+    azimuth[i] = sat.satAz;   // Store azimuth
+    elevation[i] = sat.satEl; // Store elevation
+    timestamps[i] = currentTime;
+
+    // Debug output
+    Serial.print("Time: ");
+    Serial.print(currentTime);
+    Serial.print(" | Azimuth: ");
+    Serial.print(azimuth[i]);
+    Serial.print("° | Elevation: ");
+    Serial.print(elevation[i]);
+    Serial.println("°");
+  }
+
+  // Plot Az/El graph
+  const int PLOT_X = 40;       // Left margin
+  const int PLOT_Y = 5;        // Top margin
+  const int PLOT_WIDTH = 380;  // Plot width
+  const int PLOT_HEIGHT = 240; // Plot height
+
+  const int SCREEN_WIDTH = 480;
+  const int SCREEN_HEIGHT = 320;
+
+  tft.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, TFT_BLACK);
+
+  // Draw Axes
+  tft.drawRect(PLOT_X, PLOT_Y, PLOT_WIDTH, PLOT_HEIGHT, TFT_WHITE);
+
+  // Draw grid and labels
+  int azGridInterval = 30; // Azimuth grid every 30 degrees
+  int elGridInterval = 15; // Elevation grid every 15 degrees
+
+  // Azimuth (left y-axis)
+  for (int az = 0; az <= 360; az += azGridInterval)
+  {
+    int y = PLOT_Y + PLOT_HEIGHT - map(az, 0, 360, 0, PLOT_HEIGHT);
+    tft.drawLine(PLOT_X, y, PLOT_X + PLOT_WIDTH, y, TFT_DARKGREY);
+    if (az % 90 == 0)
+    { // Label key points (0°, 90°, 180°, 270°, 360°)
+      tft.setTextColor(TFT_GREENYELLOW, TFT_BLACK);
+      tft.setCursor(PLOT_X - 30, y - 5);
+      tft.printf("%d°", az);
+    }
+  }
+
+  // Elevation (right y-axis)
+  for (int el = 0; el <= 90; el += elGridInterval)
+  {
+    int y = PLOT_Y + PLOT_HEIGHT - map(el, 0, 90, 0, PLOT_HEIGHT);
+    tft.setTextColor(TFT_CYAN, TFT_BLACK);
+    tft.setCursor(PLOT_X + PLOT_WIDTH + 10, y - 5);
+    tft.printf("%d°", el);
+  }
+
+  // Vertical Gridlines for Each Minute
+  for (unsigned long time = startTime; time <= endTime; time += 60)
+  { // Increment by 1 minute (60 seconds)
+    int x = PLOT_X + map(time, startTime, endTime, 0, PLOT_WIDTH);
+    tft.drawLine(x, PLOT_Y, x, PLOT_Y + PLOT_HEIGHT, TFT_DARKGREY); // Draw vertical gridline
+  }
+
+  // Time (x-axis)
+  for (int i = 0; i <= 5; i++)
+  {
+    int x = PLOT_X + map(i, 0, 5, 0, PLOT_WIDTH);
+    unsigned long time = startTime + i * (endTime - startTime) / 5;
+
+    // Convert time to HH:MM format
+    time_t t = time;
+    struct tm *timeInfo = gmtime(&t); // Use UTC for time conversion
+    char buffer[6];                   // Buffer for "HH:MM"
+    snprintf(buffer, sizeof(buffer), "%02d:%02d", timeInfo->tm_hour, timeInfo->tm_min);
+
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setCursor(x - 15, PLOT_Y + PLOT_HEIGHT + 5);
+    tft.print(buffer); // Print HH:MM
+  }
+
+  // Plot Azimuth and Elevation
+  int lastAzX = -1, lastAzY = -1;
+  int lastElX = -1, lastElY = -1;
+
+  for (int i = 0; i < numPoints; i++)
+  {
+    int x = PLOT_X + map(timestamps[i], startTime, endTime, 0, PLOT_WIDTH); // Correct scaling
+    int azY = PLOT_Y + PLOT_HEIGHT - map(azimuth[i], 0, 360, 0, PLOT_HEIGHT);
+    int elY = PLOT_Y + PLOT_HEIGHT - map(elevation[i], 0, 90, 0, PLOT_HEIGHT);
+
+    // Handle Azimuth Wraparound
+    if (lastAzX != -1 && lastAzY != -1)
+    {
+      if (abs(azimuth[i] - azimuth[i - 1]) > 180)
+      {
+        if (azimuth[i] > azimuth[i - 1])
+        {
+          tft.drawLine(lastAzX, lastAzY, x, PLOT_Y + PLOT_HEIGHT - map(0, 0, 360, 0, PLOT_HEIGHT), TFT_GREENYELLOW);
+          tft.drawLine(x, PLOT_Y + PLOT_HEIGHT - map(360, 0, 360, 0, PLOT_HEIGHT), x, azY, TFT_GREENYELLOW);
+        }
+        else
+        {
+          tft.drawLine(lastAzX, lastAzY, x, PLOT_Y + PLOT_HEIGHT - map(360, 0, 360, 0, PLOT_HEIGHT), TFT_GREENYELLOW);
+          tft.drawLine(x, PLOT_Y + PLOT_HEIGHT - map(0, 0, 360, 0, PLOT_HEIGHT), x, azY, TFT_GREENYELLOW);
+        }
+      }
+      else
+      {
+        tft.drawLine(lastAzX, lastAzY, x, azY, TFT_GREENYELLOW);
+      }
+    }
+    lastAzX = x;
+    lastAzY = azY;
+
+    // Draw Elevation Line (no wraparound needed)
+    if (lastElX != -1 && lastElY != -1)
+    {
+      tft.drawLine(lastElX, lastElY, x, elY, TFT_CYAN);
+    }
+    lastElX = x;
+    lastElY = elY;
+
+    // Optional: Fill under elevation curve
+    tft.drawLine(x, elY, x, PLOT_Y + PLOT_HEIGHT, TFT_CYAN);
+  }
+
+  // Display extra pass details
+  tft.setFreeFont(&FreeMono9pt7b);
+  tft.setTextFont(4);
+  tft.setCursor(45, 270); // Position for additional info below the plot
+  tft.setTextColor(TFT_GOLD, TFT_BLACK);
+  tft.print("AOS: ");
+  tft.print(formatTimeOnly(nextPassStart, true));//xxx
+  tft.print(" | LOS: ");
+  tft.println(formatTimeOnly(nextPassEnd, true));
+    tft.setCursor(90, 296); // Position for additional info below the plot
+
+  tft.print("Pass Duration: ");
+  unsigned long duration = nextPassEnd - nextPassStart;
+  tft.print(duration / 60);
+  tft.print("m ");
+  tft.print(duration % 60);
+  tft.println("s");
+}
+
+
+
 void displayPolarPlotPage()
 {
   calculateNextPass();
@@ -1166,6 +1322,7 @@ void displayPolarPlotPage()
     }
   }
 }
+
 /*
 void calculateNextPassOlMethodNotUsed()
 {
@@ -1664,8 +1821,7 @@ void displayLatitude(float number, int x, int y, uint16_t color, bool refresh)
   }
 }
 
-void displayLongitude
-(float number, int x, int y, uint16_t color, bool refresh)
+void displayLongitude(float number, int x, int y, uint16_t color, bool refresh)
 {
   tft.setTextSize(1);
   tft.setTextFont(4);
@@ -1943,6 +2099,65 @@ void displayPatreonimage()
   }
 }
 
+void displayPExpedition72image()
+{
+  // https://notisrac.github.io/FileToCArray/
+  int16_t rc = png.openFLASH((uint8_t *)expedition72, sizeof(expedition72), pngDraw);
+  if (rc == PNG_SUCCESS)
+  {
+    Serial.println("Successfully opened png file");
+    Serial.printf("image specs: (%d x %d), %d bpp, pixel type: %d\n", png.getWidth(), png.getHeight(), png.getBpp(), png.getPixelType());
+    tft.startWrite();
+    uint32_t dt = millis();
+    rc = png.decode(NULL, 0);
+    Serial.print(millis() - dt);
+    Serial.println("ms");
+    tft.endWrite();
+  }
+}
+
+void drawFootprint(int centerX, int centerY, float altitude)
+{
+  float earthRadius = 6371.0; // Earth's radius in kilometers
+  float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + altitude));
+
+  // Debug: Print calculated footprint radius in km
+  Serial.print("Footprint radius (km): ");
+  Serial.println(footprintRadiusKm);
+
+  // Map scaling factors
+  float pixelsPerDegreeLat = 320.0 / 180.0; // 320 pixels for 180 degrees latitude (-90 to +90)
+  float pixelsPerDegreeLon = 480.0 / 360.0; // 480 pixels for 360 degrees longitude (-180 to +180)
+
+  // Convert footprint radius in kilometers to map pixels
+  // Assume 1° latitude ≈ 111 km and scale accordingly
+  float degreesLat = footprintRadiusKm / 111.0;           // Approximate conversion to degrees
+  float degreesLon = degreesLat;                          // Same for longitude assuming spherical geometry
+  int footprintRadiusY = degreesLat * pixelsPerDegreeLat; // Convert degrees to pixels
+  int footprintRadiusX = degreesLon * pixelsPerDegreeLon; // Convert degrees to pixels
+
+  /*Debug: Print scaled footprint radii in pixels
+  Serial.print("Footprint radius X (pixels): ");
+  Serial.println(footprintRadiusX);
+  Serial.print("Footprint radius Y (pixels): ");
+  Serial.println(footprintRadiusY);
+  */
+
+  // Draw an ellipse to represent the footprint
+  for (int angle = 0; angle < 360; angle++)
+  {
+    float rad = angle * DEG_TO_RAD; // Convert to radians
+    int x = centerX + cos(rad) * footprintRadiusX;
+    int y = centerY + sin(rad) * footprintRadiusY;
+
+    // Check bounds before drawing
+    if (x >= 0 && x < 480 && y >= 0 && y < 320)
+    {
+      tft.fillCircle(x, y + 40, 1, TFT_GOLD); // Radius of 1 pixel makes a 2-pixel diameter dot
+    }
+  }
+}
+
 void displayMapWithMultiPasses()
 {
   const int timeStep = 15; // Time step for plotting points
@@ -2007,9 +2222,8 @@ void displayMapWithMultiPasses()
   tft.drawCircle(currentXpos, currentYpos + 40, 6, TFT_RED);
   tft.drawCircle(currentXpos, currentYpos + 40, 7, TFT_RED);
 
-  unsigned long startWaitTime = millis(); // Start the timeout timer
-
-  tft.fillCircle(currentXpos, currentYpos, 5, TFT_BLACK); // Clear the marker
+  // Call the drawFootprint function
+  drawFootprint(currentXpos, currentYpos, sat.satAlt);
 }
 
 void displayTableNext10Passes()
@@ -2276,80 +2490,6 @@ void displayFormattedNumberRightAligned(int rightEdgeX, int y, int number, int c
   previousFormattedValue = formattedValue;
 }
 
-//////////////////////////////////////////////////////////////////////
-void displayOrbitNumber_AJETER(int rightEdgeX, int y, int number, int color)
-{
-  tft.setTextFont(4);                                   // Set font to 4 (ensure it's enabled in TFT_eSPI setup)
-  tft.setTextSize(1);                                   // Set default text size
-  static String previousFormattedValue = "";            // Store the previously displayed value
-  String formattedValue = formatWithSeparators(number); // Format the current number
-
-  // Calculate the total width of the formatted number
-  int totalWidth = 0;
-  for (int i = 0; i < formattedValue.length(); i++)
-  {
-    totalWidth += (formattedValue[i] == '\'') ? tft.textWidth("'") : tft.textWidth("0");
-  }
-  int xStart = rightEdgeX - totalWidth; // Calculate the starting x position
-
-  // Update only changed characters
-  for (int i = 0; i < formattedValue.length(); i++)
-  {
-    if (i >= previousFormattedValue.length() || formattedValue[i] != previousFormattedValue[i])
-    {
-      // Erase old character by printing a black character
-      tft.setCursor(xStart, y);
-      tft.setTextColor(TFT_BLACK, TFT_BLACK);
-      tft.print(i < previousFormattedValue.length() ? previousFormattedValue[i] : ' ');
-
-      // Draw the new character
-      tft.setCursor(xStart, y);
-      tft.setTextColor(color, TFT_BLACK);
-      tft.print(formattedValue[i]);
-    }
-    xStart += (formattedValue[i] == '\'') ? tft.textWidth("'") : tft.textWidth("0"); // Advance cursor
-  }
-
-  // Store the current value for future comparisons
-  previousFormattedValue = formattedValue;
-}
-void displayAltitude_AJETER(int rightEdgeX, int y, int number, int color)
-{
-  tft.setTextFont(4);                                   // Set font to 4 (ensure it's enabled in TFT_eSPI setup)
-  tft.setTextSize(1);                                   // Set default text size
-  static String previousFormattedValue = "";            // Store the previously displayed value
-  String formattedValue = formatWithSeparators(number); // Format the current number
-
-  // Calculate the total width of the formatted number
-  int totalWidth = 0;
-  for (int i = 0; i < formattedValue.length(); i++)
-  {
-    totalWidth += (formattedValue[i] == '\'') ? tft.textWidth("'") : tft.textWidth("0");
-  }
-  int xStart = rightEdgeX - totalWidth; // Calculate the starting x position
-
-  // Update only changed characters
-  for (int i = 0; i < formattedValue.length(); i++)
-  {
-    if (i >= previousFormattedValue.length() || formattedValue[i] != previousFormattedValue[i])
-    {
-      // Erase old character by printing a black character
-      tft.setCursor(xStart, y);
-      tft.setTextColor(TFT_BLACK, TFT_BLACK);
-      tft.print(i < previousFormattedValue.length() ? previousFormattedValue[i] : ' ');
-
-      // Draw the new character
-      tft.setCursor(xStart, y);
-      tft.setTextColor(color, TFT_BLACK);
-      tft.print(formattedValue[i]);
-    }
-    xStart += (formattedValue[i] == '\'') ? tft.textWidth("'") : tft.textWidth("0"); // Advance cursor
-  }
-
-  // Store the current value for future comparisons
-  previousFormattedValue = formattedValue;
-}
-
 // Function to display a timer in HH:MM:SS format, right-aligned
 // Only updates digits or colons that change
 void displayTimeRightAligned(int rightEdgeX, int y, int seconds, int color, bool refresh)
@@ -2404,7 +2544,6 @@ void displayTimeRightAligned(int rightEdgeX, int y, int seconds, int color, bool
   // Store the current value for future comparisons
   previousTimeString = timeString;
 }
-
 void displayDistance(int number, int x, int y, uint16_t color, bool refresh)
 {
   tft.setTextSize(1);
@@ -2687,7 +2826,7 @@ void setup()
 
   initializeTFT();
   // displayBlueMapimage(); Alternative Mapd
-  displayPatreonimage();
+
   displayISSimage(1000);
   printWelcomeMessage();
   int pause = 0;
@@ -2708,6 +2847,11 @@ void setup()
   delay(pause);
   displayMapWithMultiPasses();
   displayPolarPlotPage();
+  displayAzElPlotPage();
+  displayPExpedition72image();
+  delay(3000);
+  displayPatreonimage();
+  delay(3000);
 
   tft.fillScreen(TFT_BLACK); // clear the screen
   // tkSecond.attach(1, Second_Tick);
@@ -2728,7 +2872,7 @@ void loop()
       touchCounter++; // Increment the counter
 
       // If counter exceeds 5, reset it to 1
-      if (touchCounter > 5)
+      if (touchCounter > 6)
       {
         touchCounter = 1;
 
@@ -2738,6 +2882,7 @@ void loop()
         page3Displayed = false;
         page4Displayed = false;
         page5Displayed = false;
+        page6Displayed = false;
       }
 
       // Print the counter
@@ -2783,8 +2928,17 @@ void loop()
       case 5:
         if (!page5Displayed)
         {
-          Serial.println("Don nothing)"); // Show page 5
-          page5Displayed = true;          // Set the flag to prevent re-display
+          displayAzElPlotPage();
+          page5Displayed = true; // Set the flag to prevent re-display
+        }
+        break;
+
+      case 6:
+        if (!page5Displayed)
+        {
+
+          displayPExpedition72image();
+          page6Displayed = true; // Set the flag to prevent re-display
         }
         break;
       default:
@@ -2813,7 +2967,6 @@ void loop()
     {
       // Calculate range rate
       double rangeRate = (currentDistance - previousDistance) / deltaTime;
-   
     }
 
     // Update previous values
@@ -2829,14 +2982,13 @@ void displayMainPage()
 {
   // Update the time from NTP
   timeClient.update();
-  
+
   getOrbitNumber(unixtime);
   unixtime = timeClient.getEpochTime(); // Get the current UNIX timestamp
   unsigned long nextpassInSec = nextPassStart - unixtime;
-// Update the satellite data
+  // Update the satellite data
   sat.findsat(unixtime);
   Serial.println(unixtime);
-
 
   updateBigClock();
   int AZELcolor;
@@ -2866,7 +3018,6 @@ void displayMainPage()
   displayLatitude(sat.satLat, 320, startYmain, TFT_GOLD, refresh);
   displayLongitude(sat.satLon, 320, startYmain + deltaY, TFT_GOLD, refresh);
   displayLTLEage(startYmain + 2 * deltaY, refresh);
-
 
   int shifting = 40;
   int nextPass = 295;
