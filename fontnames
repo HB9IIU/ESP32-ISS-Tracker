@@ -1,0 +1,83 @@
+These fonts come in different sizes and styles:
+
+FreeMono Fonts (monospaced, similar to a classic typewriter font)
+
+&FreeMono9pt7b
+&FreeMono12pt7b
+&FreeMono18pt7b
+&FreeMono24pt7b
+FreeMonoBold Fonts
+
+&FreeMonoBold9pt7b
+&FreeMonoBold12pt7b
+&FreeMonoBold18pt7b
+&FreeMonoBold24pt7b
+FreeMonoBoldOblique Fonts (monospaced and italicized)
+
+&FreeMonoBoldOblique9pt7b
+&FreeMonoBoldOblique12pt7b
+&FreeMonoBoldOblique18pt7b
+&FreeMonoBoldOblique24pt7b
+FreeMonoOblique Fonts
+
+&FreeMonoOblique9pt7b
+&FreeMonoOblique12pt7b
+&FreeMonoOblique18pt7b
+&FreeMonoOblique24pt7b
+FreeSans Fonts (sans-serif style, like Arial)
+
+&FreeSans9pt7b
+&FreeSans12pt7b
+&FreeSans18pt7b
+&FreeSans24pt7b
+FreeSansBold Fonts
+
+&FreeSansBold9pt7b
+&FreeSansBold12pt7b
+&FreeSansBold18pt7b
+&FreeSansBold24pt7b
+FreeSerif Fonts (serif style, like Times New Roman)
+
+&FreeSerif9pt7b
+&FreeSerif12pt7b
+&FreeSerif18pt7b
+&FreeSerif24pt7b
+FreeSerifBold Fonts
+
+&FreeSerifBold9pt7b
+&FreeSerifBold12pt7b
+&FreeSerifBold18pt7b
+&FreeSerifBold24pt7b
+FreeSerifItalic Fonts (italicized serif)
+
+&FreeSerifItalic9pt7b
+&FreeSerifItalic12pt7b
+&FreeSerifItalic18pt7b
+&FreeSerifItalic24pt7b
+FreeSerifBoldItalic Fonts
+
+&FreeSerifBoldItalic9pt7b
+&FreeSerifBoldItalic12pt7b
+&FreeSerifBoldItalic18pt7b
+&FreeSerifBoldItalic24pt7b
+How to Use:
+To use any of these fonts, simply set them with tft.setFreeFont(&FontName);. For example:
+
+cpp
+Copy code
+tft.setFreeFont(&FreeSans12pt7b);
+tft.println("This is FreeSans 12pt");
+
+
+1. Serif Fonts
+Meaning: The term serif refers to the small lines or strokes attached to the ends of letters. These little "feet" or "tails" give serif fonts a more classic, formal look.
+Examples: Times New Roman, Georgia, FreeSerif.
+Use: Traditionally, serif fonts are considered more readable in printed text and are often used in books, newspapers, and formal documents.
+2. Sans-Serif Fonts
+Meaning: Sans is French for "without," so sans-serif means "without serifs." Sans-serif fonts do not have the additional strokes at the ends of characters, giving them a cleaner, more modern appearance.
+Examples: Arial, Helvetica, FreeSans.
+Use: Sans-serif fonts are often used for digital screens and are associated with a more contemporary, minimalist look. They are commonly used in websites, user interfaces, and informal or modern documents.
+In your case:
+
+FreeSans is a clean, modern-looking font without extra strokes.
+FreeSerif has the traditional look with added strokes at the ends of each character, giving it a slightly more formal feel.
