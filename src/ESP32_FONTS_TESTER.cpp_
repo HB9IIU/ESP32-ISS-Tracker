@@ -1,0 +1,72 @@
+#include <TFT_eSPI.h>
+
+TFT_eSPI tft = TFT_eSPI();
+void displayFonts();
+
+void setup() {
+  tft.init();
+  tft.setRotation(1);  // Adjust as needed
+
+  // Clear the screen
+  tft.fillScreen(TFT_BLACK);
+
+  // Display text in different fonts
+  displayFonts();
+}
+
+void displayFonts() {
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+
+  // Display in GLCD font
+  tft.setTextFont(1);  // Set to GLCD font
+  tft.setCursor(0, 10);
+  tft.println("This is GLCD Font");
+
+  // Display in Font 2
+  tft.setTextFont(2);
+  tft.setCursor(0, 40);
+  tft.println("This is Font 2");
+
+  // Display in Font 4
+  tft.setTextFont(4);
+  tft.setCursor(0, 80);
+  tft.println("This is Font 4");
+
+  // Display in Font 6
+  tft.setTextFont(6);
+  tft.setCursor(0, 120);
+  tft.println("This is Font 6");
+
+  // Display in Font 7
+  tft.setTextFont(7);
+  tft.setCursor(0, 160);
+  tft.println("This is Font 7");
+
+  // Display in Font 8
+  tft.setTextFont(8);
+  tft.setCursor(0, 200);
+  tft.println("12:45:23");
+tft.print("1");
+tft.print("2");
+tft.print(":");
+tft.print("4");
+tft.print("5");
+tft.print(":");
+tft.print("2");
+tft.print("3");
+
+
+  // Display in GFXFF (FreeFonts)
+  tft.setFreeFont(&FreeSans9pt7b);
+  tft.setCursor(0, 240);
+  tft.println("This is GFXFF (FreeSans9pt7b)");
+
+    // Display in GFXFF (FreeFonts)
+  tft.setFreeFont(&FreeSans9pt7b);
+  tft.setCursor(0, 260);
+  tft.println("This is GFXFF (FreeMono9pt7b)");
+}
+
+void loop() {
+  // Do nothing
+}

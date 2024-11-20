@@ -1,0 +1,357 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+#include <Sgp4.h>
+#include <Ticker.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+#include <Adafruit_NeoPixel.h>
+
+
+// Wi-Fi credentials
+const char *ssid = "NO WIFI FOR YOU!!!";
+const char *password = "Nestle2010Nestle";
+
+// Timezone API key and URL
+const String apiKey = "EH7POYI19YHB";
+const String apiUrl = "http://api.timezonedb.com/v2.1/get-time-zone?key=" + apiKey +
+                      "&format=json&by=position&lat=46.4666463&lng=6.8615008";
+const char *tleUrl = "https://live.ariss.org/iss.txt";
+
+// NeoPixel setup
+#define LED_PIN 48
+#define NUM_LEDS 1
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000); // NTP client with 60-second update interval
+
+Sgp4 sat;
+Ticker tkSecond;
+unsigned long unixtime; // Current UNIX time in seconds
+int timezoneOffset = 0; // Timezone offset in seconds from UTC
+
+// Observer's location
+double observerLat = 46.4666463;
+double observerLon = 6.8615008;
+double observerAlt = 500;
+
+// Time step for pass prediction in seconds
+const unsigned long timeStep = 1;
+unsigned long nextPassStart = 0;
+unsigned long nextPassEnd = 0;
+double nextPassAOSAzimuth = 0;
+double nextPassLOSAzimuth = 0;
+double nextPassMaxElevation = 0;
+double nextPassPerigee = 0;
+unsigned long nextPassCulminationTime = 0; // Time of maximum elevation during the pass
+
+// Connect to Wi-Fi network
+void connectToWiFi()
+{
+  Serial.printf("Connecting to Wi-Fi network: %s\n", ssid);
+  WiFi.begin(ssid, password);
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 10)
+  {
+    delay(1000);
+    Serial.print(".");
+    attempts++;
+  }
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.println("\nWi-Fi connected successfully.");
+    Serial.printf("IP Address: %s\n", WiFi.localIP().toString().c_str());
+  }
+  else
+  {
+    Serial.println("\nFailed to connect to Wi-Fi.");
+  }
+}
+
+// Retrieve timezone offset from the API
+void getTimezoneOffset()
+{
+  Serial.println("Retrieving timezone offset...");
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    HTTPClient http;
+    http.begin(apiUrl);
+    int httpCode = http.GET();
+    if (httpCode == 200)
+    {
+      String payload = http.getString();
+      DynamicJsonDocument doc(512);
+      deserializeJson(doc, payload);
+      timezoneOffset = doc["gmtOffset"]; // Get the offset in seconds
+      Serial.printf("Timezone Offset: %d seconds\n", timezoneOffset);
+    }
+    else
+    {
+      Serial.println("Failed to retrieve timezone offset.");
+    }
+    http.end();
+  }
+}
+
+// Fetch the latest TLE data for the satellite
+bool fetchTLE(char *line1, char *line2)
+{
+  Serial.println("Fetching TLE data...");
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    HTTPClient http;
+    http.begin(tleUrl);
+    int httpCode = http.GET();
+    if (httpCode == 200)
+    {
+      String payload = http.getString();
+      int line1Start = payload.indexOf('\n') + 1;
+      int line2Start = payload.indexOf('\n', line1Start) + 1;
+      payload.substring(line1Start, line1Start + 69).toCharArray(line1, 70);
+      payload.substring(line2Start, line2Start + 69).toCharArray(line2, 70);
+      Serial.println("TLE Data Fetched Successfully.");
+      Serial.println(line1);
+      Serial.println(line2);
+      http.end();
+      return true;
+    }
+    http.end();
+  }
+  return false;
+}
+
+// Update the current time from NTP
+void updateTime()
+{
+  timeClient.update();
+  unixtime = timeClient.getEpochTime(); // Get the UTC time in seconds since epoch
+}
+
+// Format the time for display (UTC or Local)
+String formatTime(unsigned long epochTime, bool isLocal = false)
+{
+  time_t t = isLocal ? epochTime + timezoneOffset : epochTime;
+  struct tm *tmInfo = gmtime(&t);
+  char buffer[25];
+  strftime(buffer, 25, "%Y-%m-%d %H:%M:%S", tmInfo);
+  return String(buffer) + (isLocal ? " Local" : " UTC");
+}
+
+// Increment the UNIX time by one second, called by Ticker
+void Second_Tick()
+{
+  unixtime += 1;
+}
+
+// Calculate the next visible pass for the satellite
+void calculateNextPass()
+{
+  Serial.println("Calculating next visible pass...");
+  nextPassStart = 0;
+  nextPassEnd = 0;
+  nextPassMaxElevation = 0;
+  nextPassPerigee = 0;
+  nextPassCulminationTime = 0;
+  bool passInProgress = false;
+
+  sat.findsat(unixtime); // Check if the satellite is already visible
+  if (sat.satEl > 0)
+  {
+    Serial.println("Satellite currently visible; waiting for it to set before calculating the next pass.");
+    nextPassStart = unixtime;
+    nextPassAOSAzimuth = sat.satAz;
+    passInProgress = true;
+  }
+
+  for (unsigned long t = unixtime + timeStep; t < unixtime + 86400; t += timeStep)
+  {
+    sat.findsat(t);
+    if (sat.satEl > 0)
+    {
+      if (!passInProgress)
+      {
+        passInProgress = true;
+        nextPassStart = t;
+        nextPassAOSAzimuth = sat.satAz;
+        nextPassMaxElevation = sat.satEl;
+        nextPassCulminationTime = t;
+        nextPassPerigee = sat.satDist;
+      }
+      else
+      {
+        if (sat.satEl > nextPassMaxElevation)
+        {
+          nextPassMaxElevation = sat.satEl;
+          nextPassCulminationTime = t;
+        }
+        if (sat.satDist < nextPassPerigee)
+        {
+          nextPassPerigee = sat.satDist;
+        }
+      }
+      nextPassEnd = t;
+      nextPassLOSAzimuth = sat.satAz;
+    }
+    else if (passInProgress)
+    {
+      break;
+    }
+  }
+
+  if (nextPassStart != 0 && nextPassEnd != 0)
+  {
+    Serial.print("Next pass start time (AOS): ");
+    Serial.println(formatTime(nextPassStart));
+    Serial.println("Local: " + formatTime(nextPassStart, true));
+    Serial.print("AOS Azimuth: ");
+    Serial.print(nextPassAOSAzimuth);
+    Serial.println("°");
+
+    Serial.print("Maximum elevation during pass: ");
+    Serial.print(nextPassMaxElevation);
+    Serial.println("°");
+
+    Serial.print("Time of maximum elevation (Culmination): ");
+    Serial.println(formatTime(nextPassCulminationTime));
+    Serial.println("Local: " + formatTime(nextPassCulminationTime, true));
+
+    Serial.print("Pass duration: ");
+    Serial.print((nextPassEnd - nextPassStart) / 60);
+    Serial.println(" minutes");
+
+    Serial.print("Closest approach (Perigee): ");
+    Serial.print(nextPassPerigee);
+    Serial.println(" km");
+
+    Serial.print("End of pass (LOS): ");
+    Serial.println(formatTime(nextPassEnd));
+    Serial.println("Local: " + formatTime(nextPassEnd, true));
+    Serial.print("LOS Azimuth: ");
+    Serial.print(nextPassLOSAzimuth);
+    Serial.println("°");
+  }
+  else
+  {
+    Serial.println("No visible pass in the next 24 hours.");
+  }
+}
+
+// Set NeoPixel LED color and blink rate
+void setLEDColor(uint32_t color, int blinkDelay)
+{
+  strip.setPixelColor(0, color);
+  strip.show();
+  delay(blinkDelay);
+  strip.setPixelColor(0, 0, 0, 0);
+  strip.show();
+  delay(blinkDelay);
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  Serial.println("Initializing...");
+
+  connectToWiFi();
+  getTimezoneOffset();
+
+  Serial.println("Setting up NeoPixel LED...");
+  strip.begin();
+  strip.show();
+
+  Serial.println("Starting NTP client to update time...");
+  timeClient.begin();
+  updateTime();
+
+  Serial.println("Fetching TLE data and initializing satellite parameters...");
+  char tle_line1[70];
+  char tle_line2[70];
+  if (fetchTLE(tle_line1, tle_line2))
+  {
+    sat.init("ISS (ZARYA)", tle_line1, tle_line2);
+    sat.site(observerLat, observerLon, observerAlt); // Set observer’s location
+    Serial.println("Satellite parameters initialized.");
+  }
+  else
+  {
+    Serial.println("Failed to fetch TLE data. Restarting...");
+    delay(2000);
+    ESP.restart();
+  }
+
+  Serial.println("Calculating initial next pass...");
+  calculateNextPass();
+
+  tkSecond.attach(1, Second_Tick); // Increment unixtime every second
+}
+
+void loop()
+{
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    updateTime();
+  }
+
+  sat.findsat(unixtime); // Get real-time satellite position
+
+  // Display satellite data in Serial Monitor
+  Serial.println(formatTime(unixtime));
+  Serial.print("Azimuth = ");
+  Serial.print(sat.satAz, 2);
+  Serial.print("°, Elevation = ");
+  Serial.print(sat.satEl, 2);
+  Serial.print("°, Distance = ");
+  Serial.print(sat.satDist, 2);
+  Serial.println(" km");
+
+  Serial.print("Latitude = ");
+  Serial.print(sat.satLat, 2);
+  Serial.print("°, Longitude = ");
+  Serial.print(sat.satLon, 2);
+  Serial.print("°, Altitude = ");
+  Serial.print(sat.satAlt, 2);
+  Serial.println(" km");
+
+  if (sat.satEl > 0)
+  {
+    setLEDColor(strip.Color(0, 255, 0), 1000); // Slow green blink when visible
+    Serial.println("Satellite visible: Above horizon");
+
+    // Calculate and display time remaining until LOS
+    unsigned long timeUntilLOS = nextPassEnd - unixtime;
+    Serial.print("Time until LOS: ");
+    Serial.print(timeUntilLOS / 60);
+    Serial.print(" minutes ");
+    Serial.print(timeUntilLOS % 60);
+    Serial.println(" seconds");
+  }
+  else if (nextPassStart - unixtime <= 300 && nextPassStart > unixtime)
+  {
+    setLEDColor(strip.Color(255, 255, 0), 200); // Fast yellow blink 5 minutes before AOS
+    Serial.print("Next pass in: ");
+    Serial.print((nextPassStart - unixtime) / 60);
+    Serial.print(" minutes ");
+    Serial.print((nextPassStart - unixtime) % 60);
+    Serial.println(" seconds");
+  }
+  else
+  {
+    setLEDColor(strip.Color(255, 0, 0), 1000); // Slow red blink when below horizon
+    Serial.println("Satellite below horizon.");
+    Serial.print("Time until next pass: ");
+    Serial.print((nextPassStart - unixtime) / 60);
+    Serial.print(" minutes ");
+    Serial.print((nextPassStart - unixtime) % 60);
+    Serial.println(" seconds");
+  }
+
+  static unsigned long lastPassCalc = 0;
+  if (unixtime - lastPassCalc > 3600)
+  {
+    Serial.println("Recalculating next pass...");
+    calculateNextPass();
+    lastPassCalc = unixtime;
+  }
+  Serial.println();
+}

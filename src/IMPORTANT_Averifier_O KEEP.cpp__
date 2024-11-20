@@ -1,0 +1,198 @@
+#include <TFT_eSPI.h> // Include the TFT display library
+
+// Define your TFT display object
+TFT_eSPI tft = TFT_eSPI();
+
+// Function declarations
+void displayRawNumberRightAligned(int rightEdgeX, int y, int number, int color);
+void displayFormattedNumberRightAligned(int rightEdgeX, int y, int number, int color);
+void displayTimeRightAligned(int rightEdgeX, int y, int seconds, int color);
+String formatWithSeparators(int number);
+
+// Helper function to format numbers with a thousands separator
+String formatWithSeparators(int number)
+{
+    tft.setTextFont(4); // Set font to 4 (ensure it's enabled in TFT_eSPI setup)
+    tft.setTextSize(1); // Set default text size
+    // Convert the number to a string
+    String result = String(number);
+    int len = result.length();
+
+    // Insert thousands separators ('), starting from the right
+    for (int i = len - 3; i > 0; i -= 3)
+    {
+        result = result.substring(0, i) + "'" + result.substring(i);
+    }
+    return result;
+}
+
+// Function to display a raw number (no separators), right-aligned
+// Only updates digits that change
+void displayRawNumberRightAligned(int rightEdgeX, int y, int number, int color)
+{
+    tft.setTextFont(4);                  // Set font to 4 (ensure it's enabled in TFT_eSPI setup)
+    tft.setTextSize(1);                  // Set default text size
+    static String previousRawValue = ""; // Store the previously displayed value
+    String rawValue = String(number);    // Convert the current number to a string
+
+    // Calculate the total width of the raw number
+    int totalWidth = tft.textWidth(rawValue);
+    int xStart = rightEdgeX - totalWidth; // Calculate the starting x position
+
+    // Update only changed characters
+    for (int i = 0; i < rawValue.length(); i++)
+    {
+        if (i >= previousRawValue.length() || rawValue[i] != previousRawValue[i])
+        {
+            // Erase old digit by printing a black character
+            tft.setCursor(xStart, y);
+            tft.setTextColor(TFT_BLACK, TFT_BLACK);
+            tft.print(i < previousRawValue.length() ? previousRawValue[i] : ' ');
+
+            // Draw the new digit
+            tft.setCursor(xStart, y);
+            tft.setTextColor(color, TFT_BLACK);
+            tft.print(rawValue[i]);
+        }
+        xStart += tft.textWidth("0"); // Move cursor forward by the width of one digit
+    }
+
+    // Store the current value for future comparisons
+    previousRawValue = rawValue;
+}
+
+// Function to display a formatted number with separators, right-aligned
+// Only updates digits or separators that change
+void displayFormattedNumberRightAligned(int rightEdgeX, int y, int number, int color)
+{
+    tft.setTextFont(4);                                   // Set font to 4 (ensure it's enabled in TFT_eSPI setup)
+    tft.setTextSize(1);                                   // Set default text size
+    static String previousFormattedValue = "";            // Store the previously displayed value
+    String formattedValue = formatWithSeparators(number); // Format the current number
+
+    // Calculate the total width of the formatted number
+    int totalWidth = 0;
+    for (int i = 0; i < formattedValue.length(); i++)
+    {
+        totalWidth += (formattedValue[i] == '\'') ? tft.textWidth("'") : tft.textWidth("0");
+    }
+    int xStart = rightEdgeX - totalWidth; // Calculate the starting x position
+
+    // Update only changed characters
+    for (int i = 0; i < formattedValue.length(); i++)
+    {
+        if (i >= previousFormattedValue.length() || formattedValue[i] != previousFormattedValue[i])
+        {
+            // Erase old character by printing a black character
+            tft.setCursor(xStart, y);
+            tft.setTextColor(TFT_BLACK, TFT_BLACK);
+            tft.print(i < previousFormattedValue.length() ? previousFormattedValue[i] : ' ');
+
+            // Draw the new character
+            tft.setCursor(xStart, y);
+            tft.setTextColor(color, TFT_BLACK);
+            tft.print(formattedValue[i]);
+        }
+        xStart += (formattedValue[i] == '\'') ? tft.textWidth("'") : tft.textWidth("0"); // Advance cursor
+    }
+
+    // Store the current value for future comparisons
+    previousFormattedValue = formattedValue;
+}
+
+// Function to display a timer in HH:MM:SS format, right-aligned
+// Only updates digits or colons that change
+void displayTimeRightAligned(int rightEdgeX, int y, int seconds, int color)
+{
+    tft.setTextFont(4); // Set font to 4 (ensure it's enabled in TFT_eSPI setup)
+    tft.setTextSize(1); // Set default text size
+    // Convert seconds into hours, minutes, and seconds
+    int hours = seconds / 3600;
+    seconds %= 3600;
+    int minutes = seconds / 60;
+    seconds %= 60;
+
+    // Format time as HH:MM:SS with leading zeros
+    String timeString = "";
+    timeString += (hours < 10 ? "0" : "") + String(hours) + ":";
+    timeString += (minutes < 10 ? "0" : "") + String(minutes) + ":";
+    timeString += (seconds < 10 ? "0" : "") + String(seconds);
+
+    static String previousTimeString = ""; // Store the previously displayed value
+
+    // Calculate the total width of the time string
+    int totalWidth = 0;
+    for (int i = 0; i < timeString.length(); i++)
+    {
+        totalWidth += (timeString[i] == ':') ? tft.textWidth(":") : tft.textWidth("0");
+    }
+    int xStart = rightEdgeX - totalWidth; // Calculate the starting x position
+
+    // Update only changed characters
+    for (int i = 0; i < timeString.length(); i++)
+    {
+        if (i >= previousTimeString.length() || timeString[i] != previousTimeString[i])
+        {
+            // Erase old character by printing a black character
+            tft.setCursor(xStart, y);
+            tft.setTextColor(TFT_BLACK, TFT_BLACK);
+            tft.print(i < previousTimeString.length() ? previousTimeString[i] : ' ');
+
+            // Draw the new character
+            tft.setCursor(xStart, y);
+            tft.setTextColor(color, TFT_BLACK);
+            tft.print(timeString[i]);
+        }
+        xStart += (timeString[i] == ':') ? tft.textWidth(":") : tft.textWidth("0"); // Advance cursor
+    }
+
+    // Store the current value for future comparisons
+    previousTimeString = timeString;
+}
+
+
+
+
+void setup()
+{
+    // Initialize the TFT display
+    tft.begin();
+    tft.setRotation(1);        // Adjust as needed for your display orientation
+    tft.fillScreen(TFT_BLACK); // Clear the screen with a black background
+    tft.setTextFont(4);        // Set font to 4 (ensure it's enabled in TFT_eSPI setup)
+    tft.setTextSize(1);        // Set default text size
+}
+
+void loop()
+{
+    static int number = 0;    // Counter value
+    static int increment = 1; // Increment for counter
+
+    // Display the raw number (no separators), right-aligned
+    displayRawNumberRightAligned(200, 50, number, TFT_WHITE);
+    number += increment;
+    if (number >= 15000 || number <= 0)
+    {
+        increment = -increment; // Reverse direction at boundaries
+    }
+
+    // Display the formatted number with separators, right-aligned
+    displayFormattedNumberRightAligned(200, 100, number, TFT_CYAN);
+
+    // Timer logic
+    static int timerSeconds = 7456; // Set initial timer value (2 hours, 4 minutes, and 16 seconds)
+    static int lastUpdate = 0;
+
+    // Update timer every second
+    if (millis() - lastUpdate >= 1000)
+    { // Check if 1 second has elapsed
+        lastUpdate = millis();
+        if (timerSeconds > 0)
+        {
+            timerSeconds--; // Decrement timer
+        }
+    }
+
+    // Display the timer in HH:MM:SS format, right-aligned
+    displayTimeRightAligned(200, 150, timerSeconds, TFT_GREEN);
+}

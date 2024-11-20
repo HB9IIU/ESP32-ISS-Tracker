@@ -1,0 +1,145 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+#include <Sgp4.h>
+#include <Ticker.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+
+// Wi-Fi credentials
+const char* ssid = "MESH";
+const char* password = "Nestle2010Nestle";
+
+// Timezone API key and URL
+const String apiKey = "EH7POYI19YHB";  
+const String apiUrl = "http://api.timezonedb.com/v2.1/get-time-zone?key=" + apiKey +
+                      "&format=json&by=position&lat=46.4666463&lng=6.8615008"; // Replace with your latitude/longitude
+
+// NTP Client to get UTC time
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000); // 0 offset for UTC, update every 60 seconds
+
+Sgp4 sat;
+Ticker tkSecond;
+unsigned long unixtime;
+int timezoneOffset = 0;  // Variable to hold timezone offset
+int framerate;
+
+int year, mon, day, hr, minute;
+double sec;
+
+void connectToWiFi() {
+  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, IPAddress(8,8,8,8)); // Use Google DNS
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected to Wi-Fi.");
+}
+
+void getTimezoneOffset() {
+  if ((WiFi.status() == WL_CONNECTED)) { // Check if we're connected to WiFi
+    HTTPClient http;
+    bool success = false;
+
+    // Retry up to 3 times if there’s a failure
+    for (int i = 0; i < 3; i++) {
+      http.begin(apiUrl); 
+      int httpCode = http.GET(); 
+      
+      if (httpCode == 200) { // Success
+        String payload = http.getString();
+        DynamicJsonDocument doc(512);
+        deserializeJson(doc, payload);
+
+        // Extract the gmtOffset and convert to hours
+        int gmtOffset = doc["gmtOffset"];
+        timezoneOffset = gmtOffset / 3600; // Convert offset to hours
+        Serial.println("Timezone Offset: UTC " + String(timezoneOffset));
+        success = true;
+        break;
+      } else {
+        Serial.println("Failed to connect, retrying...");
+        delay(1000);  // Wait before retrying
+      }
+      http.end();
+    }
+    
+    if (!success) {
+      Serial.println("Failed to retrieve timezone information after 3 attempts.");
+    }
+  }
+}
+
+void updateTime() {
+  timeClient.update();
+  unixtime = timeClient.getEpochTime(); // Get the UTC time in seconds since epoch
+}
+
+void Second_Tick() {
+  unixtime += 1;
+  
+  invjday(sat.satJd , timezoneOffset, true, year, mon, day, hr, minute, sec);
+  Serial.println(String(day) + '/' + String(mon) + '/' + String(year) + ' ' + String(hr) + ':' + String(minute) + ':' + String(sec));
+  Serial.println("azimuth = " + String(sat.satAz) + " elevation = " + String(sat.satEl) + " distance = " + String(sat.satDist));
+  Serial.println("latitude = " + String(sat.satLat) + " longitude = " + String(sat.satLon) + " altitude = " + String(sat.satAlt));
+
+  switch(sat.satVis) {
+    case -2:
+      Serial.println("Visible : Under horizon");
+      break;
+    case -1:
+      Serial.println("Visible : Daylight");
+      break;
+    default:
+      Serial.println("Visible : " + String(sat.satVis));
+      break;
+  }
+
+  Serial.println("Framerate: " + String(framerate) + " calc/sec");
+  Serial.println();
+  
+  framerate = 0;
+}
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println();
+
+  // Connect to Wi-Fi
+  connectToWiFi();
+
+  // Get timezone offset from API
+  getTimezoneOffset();
+
+  // Initialize the NTP client and fetch the initial time
+  timeClient.begin();
+  updateTime();
+
+  // Set observer’s location (latitude, longitude, altitude)
+  sat.site(46.4666463, 6.8615008, 500);
+
+  // Satellite name and TLE data
+  char satname[] = "ISS (ZARYA)";
+  char tle_line1[] = "1 25544U 98067A   24316.48771076  .00024968  00000-0  42272-3 0  9995";
+  char tle_line2[] = "2 25544  51.6402 305.6348 0008447 163.4144 305.3407 15.51363037481396";
+  
+  sat.init(satname, tle_line1, tle_line2);
+
+  // Display TLE epoch time
+  double jdC = sat.satrec.jdsatepoch;
+  invjday(jdC , timezoneOffset, true, year, mon, day, hr, minute, sec);
+  Serial.println("Epoch: " + String(day) + '/' + String(mon) + '/' + String(year) + ' ' + String(hr) + ':' + String(minute) + ':' + String(sec));
+  Serial.println();
+
+  tkSecond.attach(1, Second_Tick); // Call Second_Tick every 1 second
+}
+
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) {
+    updateTime();  // Update time from NTP
+  }
+  sat.findsat(unixtime); // Update satellite position based on current unixtime
+  framerate += 1;
+}

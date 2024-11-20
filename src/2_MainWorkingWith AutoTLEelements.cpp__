@@ -1,0 +1,139 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+#include <Sgp4.h>
+#include <Ticker.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+
+// Wi-Fi credentials
+const char* ssid = "NO WIFI FOR YOU!!!";
+const char* password = "Nestle2010Nestle";
+
+// TLE data URL
+const char* tleUrl = "https://live.ariss.org/iss.txt";
+
+// NTP Client to get UTC time
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000); // 0 offset for UTC, update every 60 seconds
+
+Sgp4 sat;
+Ticker tkSecond;
+unsigned long unixtime;
+int timezoneOffset = 0;  // Variable to hold timezone offset
+int framerate;
+
+int year, mon, day, hr, minute;
+double sec;
+
+void connectToWiFi() {
+  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, IPAddress(8,8,8,8)); // Use Google DNS
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected to Wi-Fi.");
+}
+
+// Fetch the latest TLE data from the provided URL
+bool fetchTLE(char* line1, char* line2) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(tleUrl);
+    int httpCode = http.GET();
+
+    if (httpCode == 200) {
+      String payload = http.getString();
+      int line1Start = payload.indexOf('\n') + 1;
+      int line2Start = payload.indexOf('\n', line1Start) + 1;
+
+      if (line1Start > 0 && line2Start > line1Start) {
+        payload.substring(line1Start, line1Start + 69).toCharArray(line1, 70);
+        payload.substring(line2Start, line2Start + 69).toCharArray(line2, 70);
+        http.end();
+        return true;
+      }
+    }
+    http.end();
+  }
+  return false;
+}
+
+void updateTime() {
+  timeClient.update();
+  unixtime = timeClient.getEpochTime(); // Get the UTC time in seconds since epoch
+}
+
+void Second_Tick() {
+  unixtime += 1;
+  
+  invjday(sat.satJd , timezoneOffset, true, year, mon, day, hr, minute, sec);
+  Serial.println(String(day) + '/' + String(mon) + '/' + String(year) + ' ' + String(hr) + ':' + String(minute) + ':' + String(sec));
+  Serial.println("azimuth = " + String(sat.satAz) + " elevation = " + String(sat.satEl) + " distance = " + String(sat.satDist));
+  Serial.println("latitude = " + String(sat.satLat) + " longitude = " + String(sat.satLon) + " altitude = " + String(sat.satAlt));
+
+  switch(sat.satVis) {
+    case -2:
+      Serial.println("Visible : Under horizon");
+      break;
+    case -1:
+      Serial.println("Visible : Daylight");
+      break;
+    default:
+      Serial.println("Visible : " + String(sat.satVis));
+      break;
+  }
+
+  Serial.println("Framerate: " + String(framerate) + " calc/sec");
+  Serial.println();
+  
+  framerate = 0;
+}
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println();
+
+  // Connect to Wi-Fi
+  connectToWiFi();
+
+  // Fetch TLE data
+  char tle_line1[70];
+  char tle_line2[70];
+  if (fetchTLE(tle_line1, tle_line2)) {
+    Serial.println("TLE Data Fetched Successfully:");
+    Serial.println(tle_line1);
+    Serial.println(tle_line2);
+  } else {
+    Serial.println("Failed to fetch TLE data.");
+    return;
+  }
+
+  // Initialize satellite parameters with fetched TLE data
+  char satname[] = "ISS (ZARYA)";
+  sat.init(satname, tle_line1, tle_line2);
+
+  // Initialize NTP client and fetch initial time
+  timeClient.begin();
+  updateTime();
+
+  // Set observer’s location (latitude, longitude, altitude)
+  sat.site(46.4666463, 6.8615008, 500);
+
+  // Display TLE epoch time
+  double jdC = sat.satrec.jdsatepoch;
+  invjday(jdC, timezoneOffset, true, year, mon, day, hr, minute, sec);
+  Serial.println("Epoch: " + String(day) + '/' + String(mon) + '/' + String(year) + ' ' + String(hr) + ':' + String(minute) + ':' + String(sec));
+  Serial.println();
+
+  tkSecond.attach(1, Second_Tick); // Call Second_Tick every 1 second
+}
+
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) {
+    updateTime();  // Update time from NTP
+  }
+  sat.findsat(unixtime); // Update satellite position based on current unixtime
+  framerate += 1;
+}

@@ -1,0 +1,192 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+#include <Sgp4.h>
+#include <Ticker.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+
+// Wi-Fi credentials
+const char* ssid = "NO WIFI FOR YOU!!!";
+const char* password = "Nestle2010Nestle";
+
+// TLE data URL
+const char* tleUrl = "https://live.ariss.org/iss.txt";
+
+// NTP Client to get UTC time
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000); // 0 offset for UTC, update every 60 seconds
+
+Sgp4 sat;
+Ticker tkSecond;
+unsigned long unixtime;
+int timezoneOffset = 0;  // Variable to hold timezone offset
+int framerate;
+
+// Observer's location
+double observerLat = 46.4666463;  // Latitude
+double observerLon = 6.8615008;   // Longitude
+double observerAlt = 500;         // Altitude
+
+// Time step for pass prediction in seconds
+const unsigned long timeStep = 1;  // Define the time step here (e.g., 10 seconds)
+
+// Next pass information
+unsigned long nextPassStart = 0;
+unsigned long nextPassEnd = 0;
+double nextPassMaxElevation = 0;
+
+void connectToWiFi() {
+  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, IPAddress(8,8,8,8)); // Use Google DNS
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected to Wi-Fi.");
+}
+
+bool fetchTLE(char* line1, char* line2) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(tleUrl);
+    int httpCode = http.GET();
+
+    if (httpCode == 200) {
+      String payload = http.getString();
+      int line1Start = payload.indexOf('\n') + 1;
+      int line2Start = payload.indexOf('\n', line1Start) + 1;
+
+      if (line1Start > 0 && line2Start > line1Start) {
+        payload.substring(line1Start, line1Start + 69).toCharArray(line1, 70);
+        payload.substring(line2Start, line2Start + 69).toCharArray(line2, 70);
+        http.end();
+        return true;
+      }
+    }
+    http.end();
+  }
+  return false;
+}
+
+void updateTime() {
+  timeClient.update();
+  unixtime = timeClient.getEpochTime(); // Get the UTC time in seconds since epoch
+}
+
+String formatTime(unsigned long epochTime) {
+  // Convert epoch time to human-readable format
+  time_t t = epochTime;
+  struct tm* tmInfo = gmtime(&t);
+  char buffer[25];
+  strftime(buffer, 25, "%Y-%m-%d %H:%M:%S UTC", tmInfo);
+  return String(buffer);
+}
+
+void Second_Tick() {
+  unixtime += 1;
+  framerate = 0; // Reset frame rate for the next second
+}
+
+// Calculate next visible pass with refined start/end detection
+void calculateNextPass() {
+  nextPassStart = 0;
+  nextPassEnd = 0;
+  nextPassMaxElevation = 0;
+  bool passInProgress = false;
+
+  for (unsigned long t = unixtime; t < unixtime + 86400; t += timeStep) { // Use the time step variable
+    sat.findsat(t);  // Calculate satellite position at time `t`
+
+    // Check if the satellite is above the horizon
+    if (sat.satEl > 0) {
+      if (!passInProgress) {  // New pass starting
+        passInProgress = true;
+        nextPassStart = t;
+        nextPassMaxElevation = sat.satEl;
+      } else {  // Pass ongoing, update max elevation if higher
+        if (sat.satEl > nextPassMaxElevation) {
+          nextPassMaxElevation = sat.satEl;
+        }
+      }
+      nextPassEnd = t;  // Update end time with the last time above 0° elevation
+    } else if (passInProgress) {  // Pass ended
+      break;
+    }
+  }
+
+  // Display next pass details if found
+  if (nextPassStart != 0 && nextPassEnd != 0) {
+    Serial.print("Next pass start time: ");
+    Serial.println(formatTime(nextPassStart));  // Display start time in human-readable format
+    Serial.print("Maximum elevation during pass: ");
+    Serial.print(nextPassMaxElevation);
+    Serial.println(" degrees");
+    Serial.print("Pass duration: ");
+    Serial.print((nextPassEnd - nextPassStart) / 60);  // Duration in minutes
+    Serial.println(" minutes");
+  } else {
+    Serial.println("No visible pass in the next 24 hours.");
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println();
+
+  // Connect to Wi-Fi
+  connectToWiFi();
+
+  // Fetch TLE data
+  char tle_line1[70];
+  char tle_line2[70];
+  if (fetchTLE(tle_line1, tle_line2)) {
+    Serial.println("TLE Data Fetched Successfully:");
+    Serial.println(tle_line1);
+    Serial.println(tle_line2);
+  } else {
+    Serial.println("Failed to fetch TLE data.");
+    return;
+  }
+
+  // Initialize satellite parameters with fetched TLE data
+  char satname[] = "ISS (ZARYA)";
+  sat.init(satname, tle_line1, tle_line2);
+
+  // Initialize NTP client and fetch initial time
+  timeClient.begin();
+  updateTime();
+
+  // Set observer’s location (latitude, longitude, altitude)
+  sat.site(observerLat, observerLon, observerAlt);
+
+  // Calculate the next pass
+  calculateNextPass();
+
+  tkSecond.attach(1, Second_Tick); // Call Second_Tick every 1 second
+}
+
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) {
+    updateTime();  // Update time from NTP
+  }
+  
+  // Live tracking of the satellite
+  sat.findsat(unixtime); // Update satellite position based on current unixtime
+  Serial.print("Current Azimuth: ");
+  Serial.print(sat.satAz);
+  Serial.print("°, Elevation: ");
+  Serial.print(sat.satEl);
+  Serial.println("°");
+  
+  framerate += 1;
+
+  // Periodically calculate the next pass every hour
+  static unsigned long lastPassCalc = 0;
+  if (unixtime - lastPassCalc > 3600) {  // Recalculate next pass every hour
+    calculateNextPass();
+    lastPassCalc = unixtime;
+  }
+
+  delay(1000); // Add delay for readability in serial monitor
+}
