@@ -3,7 +3,14 @@
 
 ![Project Banner](https://example.com/banner-image-url)
 
-An **ESP32-based tracking system** for the **International Space Station (ISS)**. This project utilizes real-time data from online sources to provide detailed information about ISS passes, including **acquisition of signal (AOS)**, **maximum elevation (TCA)**, and **loss of signal (LOS)**. The data is displayed on a **480x320 TFT screen** with a touchscreen interface, showcasing beautiful visualizations such as polar plots, azimuth/elevation plots, and satellite footprint maps.
+### **Efficient Real-Time Calculations on an ESP32**
+
+This project is an **ESP32-based tracking system for the International Space Station (ISS)** that demonstrates the impressive functionality and versatility of this microcontroller. Unlike other applications that rely on external APIs to fetch the ISS's current position, this system retrieves only the **Two-Line Elements (TLEs)** and current time from online sources. All orbital calculations are performed in real time using the **SGDP4 library**, making the solution self-contained and dynamic.
+
+The system provides detailed information about ISS passes, including **Acquisition of Signal (AOS)**, **Time of Closest Approach (TCA)**, and **Loss of Signal (LOS)**. The data is displayed on a **480x320 TFT screen** with a touchscreen interface, offering **clear and informative visualizations** such as polar plots, azimuth/elevation graphs, and satellite footprint maps. 
+
+This project highlights how much capability can be packed into an ESP32, handling computationally intensive tasks while remaining compact and efficient.
+
 
 ---
 
