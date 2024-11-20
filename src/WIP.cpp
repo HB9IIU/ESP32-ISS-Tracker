@@ -8,18 +8,18 @@
 #include <WiFiUdp.h>
 #include <TFT_eSPI.h>
 #include <Preferences.h> // For flash storage of TLE data
+#include <PNGdec.h>// Include the PNG decoder library
 
 // TFT Setup
 TFT_eSPI tft = TFT_eSPI();
+// PNG decoder instance
+PNG png; 
 
-// Include the PNG decoder library
-#include <PNGdec.h>
+
 #include "ISSsplashImage.h" // Image is stored here in an 8-bit array
 #include "worldMap.h"       // Image is stored here in an 8-bit array
-#include "blueMap.h"        // Image is stored here in an 8-bit array
-#include "patreon.h"        // Image is stored here in an 8-bit array
-
-PNG png; // PNG decoder instance
+// #include "blueMap.h"        // Image is stored here in an 8-bit array
+#include "patreon.h" // Image is stored here in an 8-bit array
 
 // TLE data URL
 const char *tleUrlMain = "https://tle.ivanstanojevic.me/api/tle/25544";
@@ -1268,7 +1268,7 @@ void calculateNextPassOlMethodNotUsed()
 
 void updateBigClock(bool refresh = false)
 {
-  int y = 5;
+  int y = 0;
   int color = TFT_GOLD;
   tft.setTextFont(8);
   tft.setTextSize(1);
@@ -1377,7 +1377,7 @@ void displayElevation(float number, int x, int y, uint16_t color, bool refresh)
     // Margins around the text
     int horiMargin = 12;
     int topMargin = 14;
-    int bottomMargin = 18;
+    int bottomMargin = 22;
     // Calculate text dimensions
     int textLength = xPos[5] - x + tft.textWidth("8") + 14;
     ;
@@ -1471,7 +1471,7 @@ void displayAzimuth(float number, int x, int y, uint16_t color, bool refresh)
     // Margins around the text
     int horiMargin = 12;
     int topMargin = 14;
-    int bottomMargin = 18;
+    int bottomMargin = 22;
     // Calculate text dimensions
     int textLength = xPos[5] - x + tft.textWidth("8") + 14;
     ;
@@ -1522,7 +1522,7 @@ void displayAzimuth(float number, int x, int y, uint16_t color, bool refresh)
     }
   }
 }
-
+/*
 void displayLatLon(int x, int y, float val)
 {
   static float prevVal = -1.0;
@@ -1591,8 +1591,8 @@ void displayLatLon(int x, int y, float val)
     prevVal = val;
   }
 }
-
-void displayLatN(float number, int x, int y, uint16_t color, bool refresh)
+*/
+void displayLatitude(float number, int x, int y, uint16_t color, bool refresh)
 {
   tft.setTextSize(1);
   tft.setTextFont(4);
@@ -1664,7 +1664,8 @@ void displayLatN(float number, int x, int y, uint16_t color, bool refresh)
   }
 }
 
-void displayLonN(float number, int x, int y, uint16_t color, bool refresh)
+void displayLongitude
+(float number, int x, int y, uint16_t color, bool refresh)
 {
   tft.setTextSize(1);
   tft.setTextFont(4);
@@ -1808,7 +1809,7 @@ void displayISSimage(int duration)
 
   delay(duration);
 }
-void displayMapimage()
+void displayEquirectangularWorlsMap()
 {
   // https://notisrac.github.io/FileToCArray/
   int16_t rc = png.openFLASH((uint8_t *)worldMap, sizeof(worldMap), pngDraw);
@@ -1906,6 +1907,7 @@ void displayMapimage()
   tft.print(text);
 }
 
+/*
 void displayBlueMapimage()
 {
   // https://notisrac.github.io/FileToCArray/
@@ -1922,6 +1924,7 @@ void displayBlueMapimage()
     tft.endWrite();
   }
 }
+*/
 
 void displayPatreonimage()
 {
@@ -1948,7 +1951,7 @@ void displayMapWithMultiPasses()
   int currentYpos;
 
   tft.fillScreen(TFT_BLACK);
-  displayMapimage();
+  displayEquirectangularWorlsMap();
 
   // Get the starting position
   sat.findsat(unixtime);
@@ -2190,6 +2193,7 @@ void displayRawNumberRightAligned(int rightEdgeX, int y, int number, int color)
   previousRawValue = rawValue;
 }
 
+/*
 // Function to display latitude/longitude with one decimal, right-aligned
 // Only updates digits that change (i.e., decimal places or sign changes)
 void displayLatLonRightAligned(int rightEdgeX, int y, float latLon, int color)
@@ -2232,7 +2236,7 @@ void displayLatLonRightAligned(int rightEdgeX, int y, float latLon, int color)
   // Store the current value for future comparisons
   previousRawValue = rawValue;
 }
-
+*/
 // Function to display a formatted number with separators, right-aligned
 // Only updates digits or separators that change
 void displayFormattedNumberRightAligned(int rightEdgeX, int y, int number, int color)
@@ -2682,7 +2686,7 @@ void setup()
   digitalWrite(TFT_BLP, HIGH);
 
   initializeTFT();
-  displayBlueMapimage();
+  // displayBlueMapimage(); Alternative Mapd
   displayPatreonimage();
   displayISSimage(1000);
   printWelcomeMessage();
@@ -2809,19 +2813,7 @@ void loop()
     {
       // Calculate range rate
       double rangeRate = (currentDistance - previousDistance) / deltaTime;
-      /*
-            // Print the range rate
-            Serial.print("Range Rate: ");
-            Serial.print(rangeRate, 3);
-            Serial.println(" km/s");
-            tft.setCursor(295, startYmain + deltaY * 2);
-            tft.setTextColor(TFT_GOLD);
-
-            tft.print("RR:");
-            displayLatLonRightAligned(395, startYmain + deltaY * 2, rangeRate, TFT_GOLD);
-            tft.setCursor(414, startYmain + deltaY * 2);
-            tft.print("km/s");
-            */
+   
     }
 
     // Update previous values
@@ -2837,11 +2829,11 @@ void displayMainPage()
 {
   // Update the time from NTP
   timeClient.update();
-  // Update the satellite data
+  
   getOrbitNumber(unixtime);
   unixtime = timeClient.getEpochTime(); // Get the current UNIX timestamp
   unsigned long nextpassInSec = nextPassStart - unixtime;
-
+// Update the satellite data
   sat.findsat(unixtime);
   Serial.println(unixtime);
 
@@ -2860,8 +2852,8 @@ void displayMainPage()
   {
     AZELcolor = TFT_RED; // Default or another color if required
   }
-  displayElevation(sat.satEl, 5 + 30, 120, AZELcolor, refresh);
-  displayAzimuth(sat.satAz, 303 - 30, 120, AZELcolor, refresh);
+  displayElevation(sat.satEl, 5 + 30, 108, AZELcolor, refresh);
+  displayAzimuth(sat.satAz, 303 - 30, 108, AZELcolor, refresh);
 
   int startXmain = 30;
   int startYmain = 200;
@@ -2870,13 +2862,10 @@ void displayMainPage()
   displayAltitude(sat.satAlt, 25, startYmain, TFT_GOLD, refresh);
   displayDistance(sat.satDist, 25, startYmain + 1 * deltaY, TFT_GOLD, refresh);
   displayOrbitNumber(orbitNumber, 25, startYmain + 2 * deltaY, TFT_GOLD, refresh);
-  displayLatN(sat.satLat, 320, startYmain, TFT_GOLD, refresh);
-  displayLonN(sat.satLon, 320, startYmain + deltaY, TFT_GOLD, refresh);
+  displayLatitude(sat.satLat, 320, startYmain, TFT_GOLD, refresh);
+  displayLongitude(sat.satLon, 320, startYmain + deltaY, TFT_GOLD, refresh);
   displayLTLEage(startYmain + 2 * deltaY, refresh);
 
-  tft.setTextSize(1);
-  tft.setTextFont(4);
-  tft.setTextColor(TFT_GOLD);
 
   int shifting = 40;
   int nextPass = 295;
