@@ -748,11 +748,6 @@ void getOrbitNumber(time_t t)
   strncpy(revNumStr, &tleLine2[63], 5); // Extract columns 63–67
   revNumStr[5] = '\0';                  // Null-terminate
   baselineOrbitNumber = atoi(revNumStr);
-  if (baselineOrbitNumber <= 0)
-  {
-    Serial.println("Error: Invalid baseline orbit number.");
-    return;
-  }
 
   // Extract Epoch Year (columns 19-20 in Line 1)
   strncpy(tempstr, &tleLine1[18], 2); // Extract columns 19-20
@@ -797,7 +792,7 @@ void getOrbitNumber(time_t t)
   float orbitsSinceEpoch = timeSinceEpochDays * meanMotion;
 
   // Update the Global Orbit Number
-  orbitNumber = baselineOrbitNumber + (int)floor(orbitsSinceEpoch);
+  orbitNumber = baselineOrbitNumber + (int)ceil(orbitsSinceEpoch);
 
   // Print the updated Orbit Number
   Serial.print("Updated Orbit Number: ");
@@ -1105,10 +1100,10 @@ void displayAzElPlotPage()
   tft.setCursor(45, 270); // Position for additional info below the plot
   tft.setTextColor(TFT_GOLD, TFT_BLACK);
   tft.print("AOS: ");
-  tft.print(formatTimeOnly(nextPassStart, true));//xxx
+  tft.print(formatTimeOnly(nextPassStart, true)); // xxx
   tft.print(" | LOS: ");
   tft.println(formatTimeOnly(nextPassEnd, true));
-    tft.setCursor(90, 296); // Position for additional info below the plot
+  tft.setCursor(90, 296); // Position for additional info below the plot
 
   tft.print("Pass Duration: ");
   unsigned long duration = nextPassEnd - nextPassStart;
@@ -1118,16 +1113,14 @@ void displayAzElPlotPage()
   tft.println("s");
 }
 
-
-
 void displayPolarPlotPage()
 {
   calculateNextPass();
   getOrbitNumber(nextPassStart);
   // Clear the area to redraw
-  tft.fillRect(0, 0, 480, 320, TFT_BLACK);
+  tft.fillScreen(TFT_BLACK);
   // Display AOS on TFT screen
-  int margin = 3;
+  int margin = 5;
   int newline = 8;
   tft.setCursor(margin, 10);
   tft.setTextColor(TFT_GOLD, TFT_BLACK);
@@ -1169,11 +1162,8 @@ void displayPolarPlotPage()
   tft.setTextFont(4); // Set the desired font
   tft.setTextColor(TFT_YELLOW, TFT_BLACK);
   tft.setCursor(margin, tft.getCursorY()); // Move to next line at x=5
-
-  tft.print("TCA "); // Label for TCA
-
-  int maxel = (int)(nextPassMaxTCA + 0.5);
-  tft.print(maxel);
+  tft.print("TCA ");                       // Label for TCA
+  tft.print(nextPassMaxTCA, 1);            // 1 specifies the number of decimal places
   tft.println(" deg.");
   // Set the desired font
   tft.setCursor(margin, tft.getCursorY());                    // Move to next line at x=5
@@ -1226,21 +1216,29 @@ void displayPolarPlotPage()
 
 #define POLAR_CENTER_X 320 // Center of the polar chart
 #define POLAR_CENTER_Y 160 // Center of the polar chart
-#define POLAR_RADIUS 140   // Adjusted radius for more space
+#define POLAR_RADIUS 140   // Maximum radius for the outermost circle
+
+  // Elevations to label and draw circles for
+  int elevations[] = {0, 15, 30, 45, 60, 75};
 
   // Draw concentric circles for elevation markers
-  for (int i = 75; i >= 15; i -= 15) // Start from 75 and go down to 15
+  for (int i = 0; i < 6; i++) // Loop through elevations array
   {
-    int radius = map(i, 0, 75, 0, POLAR_RADIUS);
+    int elevation = elevations[i];
+
+    // Map the elevation to the corresponding radius
+    int radius = map(elevation, 0, 90, POLAR_RADIUS, 0); // Corrected mapping
+
+    // Draw the circle for this elevation
     tft.drawCircle(POLAR_CENTER_X, POLAR_CENTER_Y, radius, TFT_LIGHTGREY);
 
-    // Label elevation markers inside each circle
+    // Label the elevation on the circle
     int x = POLAR_CENTER_X + radius + 5; // Offset to place labels inside each circle
     int y = POLAR_CENTER_Y - 10;
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setTextFont(1);
     tft.setCursor(x, y);
-    tft.print(i);
+    tft.print(elevation); // Display the elevation value
   }
 
   // Add degree labels around the outer circle at 30° intervals, with 0° at North
@@ -1267,7 +1265,10 @@ void displayPolarPlotPage()
     int yEnd = POLAR_CENTER_Y - POLAR_RADIUS * cos(radianAngle);
     tft.drawLine(POLAR_CENTER_X, POLAR_CENTER_Y, xEnd, yEnd, TFT_DARKGREY);
   }
-
+  // Adding the "90" label in the center
+  // tft.setTextColor(TFT_WHITE, TFT_BLACK);  // Set text color
+  tft.setCursor(POLAR_CENTER_X - 5, POLAR_CENTER_Y - 10); // Slightly offset for readability
+  tft.print("90");                                        // Print "90" in the center
   // Draw compass labels with correct orientation
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.drawCentreString("N", POLAR_CENTER_X, POLAR_CENTER_Y - POLAR_RADIUS - 18, 2);
@@ -1278,12 +1279,19 @@ void displayPolarPlotPage()
   // Plot the satellite pass path with color dots for AOS, max elevation, and LOS
   int lastX = -1, lastY = -1;
   // Time step for pass prediction
-  int timeStep = 2;
-  for (unsigned long t = nextPassStart; t <= nextPassEnd; t += timeStep)
+  int timeStep = 1;
+  bool AOSdrawm = false;
+  int x = 0;
+  int y = 0;
+  for (unsigned long t = nextPassStart - 30; t <= nextPassEnd + 30; t += timeStep) // just adding some  second 'margin'
   {
     sat.findsat(t);
     float azimuth = sat.satAz;
     float elevation = sat.satEl;
+    Serial.print("azimuth = ");
+    Serial.print(azimuth);
+    Serial.print("  elevation = ");
+    Serial.println(elevation);
 
     // Serial.printf("Time: %lu | Azimuth: %.2f | Elevation: %.2f\n", t, azimuth, elevation);
 
@@ -1291,25 +1299,20 @@ void displayPolarPlotPage()
     {
       int radius = map(90 - elevation, 0, 90, 0, POLAR_RADIUS);
       float radianAzimuth = radians(azimuth);
-      int x = POLAR_CENTER_X + radius * sin(radianAzimuth);
-      int y = POLAR_CENTER_Y - radius * cos(radianAzimuth);
+      x = POLAR_CENTER_X + radius * sin(radianAzimuth);
+      y = POLAR_CENTER_Y - radius * cos(radianAzimuth);
 
       // Serial.printf("Plotted Point -> x: %d, y: %d\n", x, y);
 
-      if (t == nextPassStart)
+      if (elevation > 0 && AOSdrawm == false)
       {
         tft.fillCircle(x, y, 3, TFT_GREEN); // Green dot for AOS
-        // Serial.println("Plotted AOS (Green)");
+        AOSdrawm = true;
       }
-      else if (t == nextPassCulminationTime)
+      if (t == nextPassCulminationTime)
       {
         tft.fillCircle(x, y, 3, TFT_YELLOW); // Yellow dot for max elevation
         // Serial.println("Plotted TCA (Yellow)");
-      }
-      else if (t == nextPassEnd)
-      {
-        tft.fillCircle(x, y, 3, TFT_RED); // Red dot for LOS
-        // Serial.println("Plotted LOS (Red)");
       }
 
       if (lastX != -1 && lastY != -1)
@@ -1321,6 +1324,7 @@ void displayPolarPlotPage()
       lastY = y;
     }
   }
+  tft.fillCircle(x, y, 3, TFT_RED); // Red dot for LOS
 }
 
 /*
@@ -2116,7 +2120,7 @@ void displayPExpedition72image()
   }
 }
 
-void drawFootprint(int centerX, int centerY, float altitude)
+void drawFootprintold(int centerX, int centerY, float altitude, float satelliteLat, float satelliteLon)
 {
   float earthRadius = 6371.0; // Earth's radius in kilometers
   float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + altitude));
@@ -2125,40 +2129,82 @@ void drawFootprint(int centerX, int centerY, float altitude)
   Serial.print("Footprint radius (km): ");
   Serial.println(footprintRadiusKm);
 
-  // Map scaling factors
-  float pixelsPerDegreeLat = 320.0 / 180.0; // 320 pixels for 180 degrees latitude (-90 to +90)
-  float pixelsPerDegreeLon = 480.0 / 360.0; // 480 pixels for 360 degrees longitude (-180 to +180)
+  // Adjusted scaling factors based on your 420x242 map size
+  float pixelsPerDegreeLat = 242.0 / 180.0; // 242 pixels for 180 degrees latitude (-90 to +90)
+  float pixelsPerDegreeLon = 420.0 / 360.0; // 420 pixels for 360 degrees longitude (-180 to +180)
 
-  // Convert footprint radius in kilometers to map pixels
-  // Assume 1° latitude ≈ 111 km and scale accordingly
-  float degreesLat = footprintRadiusKm / 111.0;           // Approximate conversion to degrees
-  float degreesLon = degreesLat;                          // Same for longitude assuming spherical geometry
-  int footprintRadiusY = degreesLat * pixelsPerDegreeLat; // Convert degrees to pixels
-  int footprintRadiusX = degreesLon * pixelsPerDegreeLon; // Convert degrees to pixels
-
-  /*Debug: Print scaled footprint radii in pixels
-  Serial.print("Footprint radius X (pixels): ");
-  Serial.println(footprintRadiusX);
-  Serial.print("Footprint radius Y (pixels): ");
-  Serial.println(footprintRadiusY);
-  */
-
-  // Draw an ellipse to represent the footprint
+  // Draw footprint using latitude and longitude
   for (int angle = 0; angle < 360; angle++)
   {
+    // Calculate latitude and longitude for each point on the footprint
     float rad = angle * DEG_TO_RAD; // Convert to radians
-    int x = centerX + cos(rad) * footprintRadiusX;
-    int y = centerY + sin(rad) * footprintRadiusY;
 
-    // Check bounds before drawing
-    if (x >= 0 && x < 480 && y >= 0 && y < 320)
+    // Use spherical trigonometry to compute new latitude and longitude
+    float deltaLat = footprintRadiusKm * cos(rad) / 111.0;                                    // 1 degree of latitude = 111 km
+    float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(satelliteLat * DEG_TO_RAD)); // Adjust for curvature
+
+    float footprintLat = satelliteLat + deltaLat; // New latitude of footprint point
+    float footprintLon = satelliteLon + deltaLon; // New longitude of footprint point
+
+    // Map lat/lon to screen coordinates
+    int x = centerX + (footprintLon * pixelsPerDegreeLon); // Map longitude to X
+    int y = centerY - (footprintLat * pixelsPerDegreeLat); // Map latitude to Y (invert y-axis)
+
+    // Correct for the map's offset (since map starts at y = 40)
+    y -= 40; // Adjust Y to account for the offset caused by the map's starting point
+
+    // Check bounds before drawing (map screen size: 420x242)
+    if (x >= 0 && x < 420 && y >= 0 && y < 242)
     {
-      tft.fillCircle(x, y + 40, 1, TFT_GOLD); // Radius of 1 pixel makes a 2-pixel diameter dot
+      tft.fillCircle(x, y, 1, TFT_GOLD); // Draw a small dot at the calculated position
+      Serial.print("x=:");
+      Serial.print(x);
+      Serial.print("   y=:");
+      Serial.println(y);
     }
   }
 }
 
-void displayMapWithMultiPasses()
+void drawFootprint(int centerX, int centerY, float altitude, float satelliteLat, float satelliteLon)
+{
+  float earthRadius = 6371.0; // Earth's radius in kilometers
+  float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + altitude));
+
+  // Debug: Print calculated footprint radius in km
+  Serial.print("Footprint radius (km): ");
+  Serial.println(footprintRadiusKm);
+
+  // Latitude and Longitude to Map Pixel Scaling (same as displayMapWithMultiPasses)
+  const int mapWidth = 420;                     // Actual width of the map
+  const int mapHeight = 242;                    // Actual height of the map
+  float pixelsPerDegreeLat = mapHeight / 180.0; // 242 pixels for 180 degrees latitude (-90 to +90)
+  float pixelsPerDegreeLon = mapWidth / 360.0;  // 420 pixels for 360 degrees longitude (-180 to +180)
+
+  // Draw the footprint as an ellipse
+  for (int angle = 0; angle < 360; angle++)
+  {
+    float rad = angle * DEG_TO_RAD; // Convert to radians
+
+    // Calculate latitude and longitude for each point on the footprint
+    float deltaLat = footprintRadiusKm * cos(rad) / 111.0;                                    // 1 degree of latitude = 111 km
+    float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(satelliteLat * DEG_TO_RAD)); // Adjust for Earth's curvature
+
+    float footprintLat = satelliteLat + deltaLat; // Latitude of the footprint point
+    float footprintLon = satelliteLon + deltaLon; // Longitude of the footprint point
+
+    // Convert latitude and longitude to map coordinates
+    int x = map(footprintLon, -180, 180, 0, mapWidth);     // Longitude to x (0 to 420)
+    int y = map(footprintLat, 90, -90, 0, mapHeight) + 40; // Latitude to y (0 to 242) + banner offset
+
+    // Bounds check
+    if (x >= 0 && x < mapWidth && y >= 40 && y < mapHeight + 40)
+    {
+      tft.fillCircle(x, y, 1, TFT_GOLD); // Draw a small dot at the calculated position
+    }
+  }
+}
+
+void displayMapWithMultiPassesOLD()
 {
   const int timeStep = 15; // Time step for plotting points
   int startX;
@@ -2175,6 +2221,52 @@ void displayMapWithMultiPasses()
   currentXpos = startX;
   currentYpos = map(sat.satLat, 90, -90, 0, 242);
 
+  tft.fillCircle(currentXpos, currentYpos + 40, 5, TFT_YELLOW); // Mark starting point
+  tft.drawCircle(currentXpos, currentYpos + 40, 6, TFT_RED);
+  tft.drawCircle(currentXpos, currentYpos + 40, 7, TFT_RED);
+
+  // Call the drawFootprint function
+  // drawFootprint(currentXpos, currentYpos, sat.satAlt, sat.satLat, sat.satLon);
+
+  float earthRadius = 6371.0; // Earth's radius in kilometers
+  float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + sat.satAlt));
+
+  // Debug: Print calculated footprint radius in km
+  Serial.print("Footprint radius (km): ");
+  Serial.println(footprintRadiusKm);
+
+  // Latitude and Longitude to Map Pixel Scaling (same as displayMapWithMultiPasses)
+  const int mapWidth = 420;                     // Actual width of the map
+  const int mapHeight = 242;                    // Actual height of the map
+  float pixelsPerDegreeLat = mapHeight / 180.0; // 242 pixels for 180 degrees latitude (-90 to +90)
+  float pixelsPerDegreeLon = mapWidth / 360.0;  // 420 pixels for 360 degrees longitude (-180 to +180)
+
+  // Draw the footprint as an ellipse
+  for (int angle = 0; angle < 360; angle++)
+  {
+    float rad = angle * DEG_TO_RAD; // Convert to radians
+
+    // Calculate latitude and longitude for each point on the footprint
+    float deltaLat = footprintRadiusKm * cos(rad) / 111.0;                                  // 1 degree of latitude = 111 km
+    float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(sat.satAlt * DEG_TO_RAD)); // Adjust for Earth's curvature
+
+    float footprintLat = sat.satAlt + deltaLat; // Latitude of the footprint point
+    float footprintLon = sat.satLon + deltaLon; // Longitude of the footprint point
+
+    // Convert latitude and longitude to map coordinates
+    int x = map(footprintLon, -180, 180, 0, mapWidth);     // Longitude to x (0 to 420)
+    int y = map(footprintLat, 90, -90, 0, mapHeight) + 40; // Latitude to y (0 to 242) + banner offset
+    Serial.print(x);
+    Serial.print("   ");
+    Serial.println(y);
+    // Bounds check
+    if (x >= 0 && x < mapWidth && y >= 40 && y < mapHeight + 40)
+    {
+      tft.fillCircle(x, y, 1, TFT_GOLD); // Draw a small dot at the calculated position
+    }
+  }
+
+  // draw 3 orbits
   unsigned long t = unixtime;
   bool hasLeftStartX = false;
   int passageCount = 0; // Track the number of passages across startX
@@ -2217,14 +2309,336 @@ void displayMapWithMultiPasses()
     // Increment time
     t += timeStep;
   }
-
-  tft.fillCircle(currentXpos, currentYpos + 40, 5, TFT_YELLOW); // Mark starting point
-  tft.drawCircle(currentXpos, currentYpos + 40, 6, TFT_RED);
-  tft.drawCircle(currentXpos, currentYpos + 40, 7, TFT_RED);
-
-  // Call the drawFootprint function
-  drawFootprint(currentXpos, currentYpos, sat.satAlt);
 }
+
+
+void displayMapWithMultiPassesNEW()
+{
+  // Constants for map scaling and placement
+  const int mapWidth = 480;                     // Width of the map
+  const int mapHeight = 242;                    // Height of the map
+  const int mapOffsetY = 40;                    // Y-offset for the map (black banner)
+  const int timeStep = 15;                      // Time step for plotting points
+
+  // Clear the screen and display the map image
+  tft.fillScreen(TFT_BLACK);
+  displayEquirectangularWorlsMap();
+
+  // STEP 1: Get satellite position and draw the footprint
+  sat.findsat(unixtime);
+  float startLat = sat.satLat;   // Satellite latitude
+  float startLon = sat.satLon;   // Satellite longitude
+  float satAlt = sat.satAlt;     // Satellite altitude
+
+  // Calculate footprint radius in kilometers
+  float earthRadius = 6371.0; // Earth's radius in kilometers
+  float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + satAlt));
+
+  // Debug: Print footprint radius
+  Serial.print("Footprint radius (km): ");
+  Serial.println(footprintRadiusKm);
+
+  // Draw the footprint as an ellipse
+  for (int angle = 0; angle < 360; angle++)
+  {
+    float rad = angle * DEG_TO_RAD; // Convert angle to radians
+
+    // Calculate latitude and longitude for each point on the footprint
+    float deltaLat = footprintRadiusKm * cos(rad) / 111.0;  // Latitude adjustment (1° ≈ 111 km)
+    float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(startLat * DEG_TO_RAD)); // Longitude adjustment
+
+    float footprintLat = startLat + deltaLat; // New latitude for the footprint point
+    float footprintLon = startLon + deltaLon; // New longitude for the footprint point
+
+    // Longitude wrapping to keep within -180° to 180°
+    if (footprintLon > 180.0) footprintLon -= 360.0;
+    if (footprintLon < -180.0) footprintLon += 360.0;
+
+    // Map latitude and longitude to screen coordinates
+    int x = map(footprintLon, -180, 180, 0, mapWidth); // Longitude to X
+    int y = map(footprintLat, 90, -90, 0, mapHeight) + mapOffsetY; // Latitude to Y with offset
+
+    // Draw footprint point if within screen bounds
+    if (x >= 0 && x < mapWidth && y >= mapOffsetY && y < mapHeight + mapOffsetY)
+    {
+      tft.fillCircle(x, y, 1, TFT_GOLD);
+    }
+  }
+
+  // STEP 2: Plot the starting position
+  int startX = map(startLon, -180, 180, 0, mapWidth); // Longitude to X-coordinate
+  int startY = map(startLat, 90, -90, 0, mapHeight) + mapOffsetY; // Latitude to Y-coordinate with offset
+
+  // Mark the starting position
+  tft.fillCircle(startX, startY, 5, TFT_YELLOW); // Starting point
+  tft.drawCircle(startX, startY, 6, TFT_RED);
+  tft.drawCircle(startX, startY, 7, TFT_RED);
+
+  // Debug: Print starting position
+  Serial.print("Starting Point (X, Y): ");
+  Serial.print(startX);
+  Serial.print(", ");
+  Serial.println(startY);
+
+  // STEP 3: Plot the satellite's path for three orbits
+  unsigned long t = unixtime;
+  int passageCount = 0;
+  bool hasLeftStartX = false;
+
+  while (passageCount < 3)
+  {
+    sat.findsat(t);
+    float lat = sat.satLat;
+    float lon = sat.satLon;
+
+    // Map latitude and longitude to screen coordinates
+    int x = map(lon, -180, 180, 0, mapWidth); // Longitude to X
+    int y = map(lat, 90, -90, 0, mapHeight) + mapOffsetY; // Latitude to Y with offset
+
+    // Choose color based on passage count
+    uint16_t color = (passageCount == 0) ? TFT_GREEN : (passageCount == 1) ? TFT_YELLOW : TFT_RED;
+
+    // Draw the satellite's path
+    tft.fillCircle(x, y, 1, color);
+
+    // Check if the satellite moved away from the starting X position
+    if (!hasLeftStartX && abs(x - startX) > 20)
+    {
+      hasLeftStartX = true;
+    }
+
+    // Check if the satellite returned close to the starting X position
+    if (hasLeftStartX && abs(x - startX) < 5)
+    {
+      passageCount++;
+      hasLeftStartX = false;
+    }
+
+    t += timeStep; // Increment time step
+  }
+}
+
+
+TFT_eSprite sprite = TFT_eSprite(&tft); // Create a sprite linked to the display
+
+
+
+void updateSubPointAndFootprint()
+{
+  sprite.fillSprite(TFT_BLACK); // Clear the sprite (debugging: use solid color for visibility)
+
+  // Get current satellite position
+  sat.findsat(unixtime);
+  float satLat = sat.satLat;
+  float satLon = sat.satLon;
+  float satAlt = sat.satAlt;
+
+  // Debug: Print satellite position
+  Serial.print("Satellite Lat, Lon, Alt: ");
+  Serial.print(satLat);
+  Serial.print(", ");
+  Serial.print(satLon);
+  Serial.print(", ");
+  Serial.println(satAlt);
+
+  // Map satellite sub-point
+  int subX = map(satLon, -180, 180, 0, 480); // Longitude to X
+  int subY = map(satLat, 90, -90, 0, 242) + 40; // Latitude to Y with offset
+
+  // Debug: Print sub-point coordinates
+  Serial.print("Sub-point (X, Y): ");
+  Serial.print(subX);
+  Serial.print(", ");
+  Serial.println(subY);
+
+  // Draw satellite sub-point
+  sprite.fillCircle(subX, subY - 40, 5, TFT_BLUE); // Adjust Y for offset
+
+  // Calculate footprint radius in kilometers
+  float earthRadius = 6371.0; // Earth's radius in kilometers
+  float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + satAlt));
+
+  // Debug: Print footprint radius
+  Serial.print("Footprint radius (km): ");
+  Serial.println(footprintRadiusKm);
+
+  // Draw the footprint
+  for (int angle = 0; angle < 360; angle++)
+{
+    float rad = angle * DEG_TO_RAD;
+
+    // Calculate footprint latitude and longitude
+    float deltaLat = footprintRadiusKm * cos(rad) / 111.0;  // Latitude adjustment
+    float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(satLat * DEG_TO_RAD)); // Longitude adjustment
+
+    float footprintLat = satLat + deltaLat; // Latitude of footprint point
+    float footprintLon = satLon + deltaLon; // Longitude of footprint point
+
+    // Longitude wrapping
+    if (footprintLon > 180.0) footprintLon -= 360.0;
+    if (footprintLon < -180.0) footprintLon += 360.0;
+
+    // Debug: Print footprint latitude and longitude
+    Serial.print("Angle: ");
+    Serial.print(angle);
+    Serial.print("  FootprintLat: ");
+    Serial.print(footprintLat);
+    Serial.print("  FootprintLon: ");
+    Serial.println(footprintLon);
+
+    // Map latitude and longitude to screen coordinates
+    int x = map(footprintLon, -180, 180, 0, 480); // Longitude to X
+    int y = map(footprintLat, 90, -90, 0, 242) + 40; // Latitude to Y with offset
+
+    // Debug: Print mapped screen coordinates
+    Serial.print("Mapped X: ");
+    Serial.print(x);
+    Serial.print("  Mapped Y: ");
+    Serial.println(y);
+
+    // Draw the footprint point
+    if (x >= 0 && x < 480 && y >= 40 && y < 282)
+    {
+        sprite.fillCircle(x, y - 40, 1, TFT_GOLD); // Adjust Y for offset
+    }
+}
+
+
+
+  // Push the sprite to the screen
+  Serial.println("Pushing sprite to the screen...");
+  sprite.pushSprite(0, 0);
+}
+
+
+void displayMapWithMultiPasses()
+{
+    const int timeStep = 15; // Time step for plotting points
+    int startX;
+    int currentXpos;
+    int currentYpos;
+
+    tft.fillScreen(TFT_BLACK);
+    displayEquirectangularWorlsMap();
+
+    // Sprite creation
+    sprite.setColorDepth(8);
+    if (sprite.createSprite(480, 242) == nullptr)
+    {
+        Serial.println("Failed to create sprite!");
+        return;
+    }
+    sprite.fillSprite(TFT_TRANSPARENT);
+
+    // Get the starting position
+    sat.findsat(unixtime);
+    float startLon = sat.satLon;
+    startX = map(startLon, -180, 180, 0, 480);
+    currentXpos = startX;
+    currentYpos = map(sat.satLat, 90, -90, 0, 242);
+
+    // Draw the starting point
+    tft.fillCircle(currentXpos, currentYpos + 40, 5, TFT_YELLOW); // Mark starting point
+    tft.drawCircle(currentXpos, currentYpos + 40, 6, TFT_RED);
+    tft.drawCircle(currentXpos, currentYpos + 40, 7, TFT_RED);
+
+    // Footprint calculations
+    float earthRadius = 6371.0; // Earth's radius in kilometers
+    float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + sat.satAlt));
+
+    Serial.print("Footprint radius (km): ");
+    Serial.println(footprintRadiusKm);
+
+    for (int angle = 0; angle < 360; angle++)
+    {
+        float rad = angle * DEG_TO_RAD;
+
+        // Calculate footprint latitude and longitude
+        float deltaLat = footprintRadiusKm * cos(rad) / 111.0;
+        float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(sat.satLat * DEG_TO_RAD));
+
+        float footprintLat = sat.satLat + deltaLat;
+        float footprintLon = sat.satLon + deltaLon;
+
+        // Longitude wrapping
+        if (footprintLon > 180.0) footprintLon -= 360.0;
+        if (footprintLon < -180.0) footprintLon += 360.0;
+
+        // Debug footprint lat/lon
+        Serial.print("Angle: ");
+        Serial.print(angle);
+        Serial.print("  FootprintLat: ");
+        Serial.print(footprintLat);
+        Serial.print("  FootprintLon: ");
+        Serial.println(footprintLon);
+
+        // Map latitude and longitude to screen coordinates
+        int x = map(footprintLon, -180, 180, 0, 480);
+        int y = map(footprintLat, 90, -90, 0, 242);
+
+        // Debug mapped coordinates
+        Serial.print("Mapped X: ");
+        Serial.print(x);
+        Serial.print("  Mapped Y: ");
+        Serial.println(y);
+
+        // Draw the footprint point
+        if (x >= 0 && x < 480 && y >= 0 && y < 242)
+        {
+            sprite.fillCircle(x, y, 2, TFT_RED); // Larger dots for visibility
+        }
+    }
+
+    // Push sprite
+    sprite.pushSprite(0, 40);
+    sprite.deleteSprite();
+
+    // Draw the 3 passes
+    unsigned long t = unixtime;
+    bool hasLeftStartX = false;
+    int passageCount = 0;
+
+    while (passageCount < 3)
+    {
+        sat.findsat(t);
+        float lat = sat.satLat;
+        float lon = sat.satLon;
+
+        int x = map(lon, -180, 180, 0, 480);
+        int y = map(lat, 90, -90, 0, 242) + 40;
+
+        uint16_t color;
+        if (passageCount == 0) color = TFT_GREEN;
+        else if (passageCount == 1) color = TFT_YELLOW;
+        else color = TFT_RED;
+
+        tft.fillCircle(x, y, 1, color);
+
+        if (!hasLeftStartX && abs(x - startX) > 20)
+        {
+            hasLeftStartX = true;
+        }
+
+        if (hasLeftStartX && abs(x - startX) < 5)
+        {
+            passageCount++;
+            hasLeftStartX = false;
+        }
+
+        t += timeStep;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
 
 void displayTableNext10Passes()
 {
@@ -2859,23 +3273,20 @@ void setup()
 
 void loop()
 {
-
   // Get the current touch pressure
   touchTFT = tft.getTouchRawZ();
 
   // Check if the touch pressure exceeds the threshold and debounce
-  if (touchTFT > 1000)
+  if (touchTFT > 500)
   {
     // Only increment the counter if enough time has passed since the last touch
     if (millis() - lastTouchTime > debounceDelay)
     {
       touchCounter++; // Increment the counter
-
-      // If counter exceeds 5, reset it to 1
+      // If counter exceeds 6, reset it to 1
       if (touchCounter > 6)
       {
         touchCounter = 1;
-
         // Reset page display flags so that pages can be displayed again
         page1Displayed = false;
         page2Displayed = false;
@@ -2886,8 +3297,8 @@ void loop()
       }
 
       // Print the counter
-      Serial.print("Counter: ");
-      Serial.println(touchCounter);
+      // Serial.print("Counter: ");
+      // Serial.println(touchCounter);
 
       // Call the respective functions based on the counter value
       switch (touchCounter)
@@ -2900,9 +3311,7 @@ void loop()
           refresh = true;
           page1Displayed = true; // Set the flag to prevent re-display
         }
-
         displayMainPage(); // Show page 1
-
         break;
       case 2:
         if (!page2Displayed)
@@ -2921,36 +3330,44 @@ void loop()
       case 4:
         if (!page4Displayed)
         {
-          displayMapWithMultiPasses(); // Show page 4
-          page4Displayed = true;       // Set the flag to prevent re-display
+          displayAzElPlotPage();
+          page4Displayed = true; // Set the flag to prevent re-display
         }
         break;
       case 5:
         if (!page5Displayed)
         {
-          displayAzElPlotPage();
-          page5Displayed = true; // Set the flag to prevent re-display
+          displayMapWithMultiPasses(); // Show page 4
+          page5Displayed = true;       // Set the flag to prevent re-display
         }
+
+    updateSubPointAndFootprint();
+    Serial.println(" I am here.....");
+delay(1000);
+ static unsigned long lastUpdate = 0;
+  if (millis() - lastUpdate >= 1000) // Update every 1 second
+  {
+    Serial.println(" I am here.....");
+    updateSubPointAndFootprint();
+    lastUpdate = millis();
+  }
+
+
         break;
 
       case 6:
         if (!page5Displayed)
         {
-
           displayPExpedition72image();
           page6Displayed = true; // Set the flag to prevent re-display
         }
         break;
-      default:
-        break;
       }
-
       lastTouchTime = millis(); // Update the time of the last touch
     }
   }
-  // Execute every second
+  // Calculate speed every second
   static unsigned long lastLoopTime = millis();
-
   if (millis() - lastLoopTime >= 1000 && touchCounter == 1)
   {
 
@@ -2968,7 +3385,6 @@ void loop()
       // Calculate range rate
       double rangeRate = (currentDistance - previousDistance) / deltaTime;
     }
-
     // Update previous values
     previousDistance = currentDistance;
     previousTime = currentTime;
@@ -2982,28 +3398,31 @@ void displayMainPage()
 {
   // Update the time from NTP
   timeClient.update();
-
   getOrbitNumber(unixtime);
   unixtime = timeClient.getEpochTime(); // Get the current UNIX timestamp
   unsigned long nextpassInSec = nextPassStart - unixtime;
-  // Update the satellite data
-  sat.findsat(unixtime);
-  Serial.println(unixtime);
 
   updateBigClock();
-  int AZELcolor;
+
+  // Update the satellite data
+  sat.findsat(unixtime);
   // Determine AZELcolor based on nextpassInSec
+  int AZELcolor;
   if (nextpassInSec < 30)
   {
-    AZELcolor = TFT_YELLOW;
+    AZELcolor = TFT_GREEN;
   }
   else if (nextpassInSec < 60)
   {
-    AZELcolor = TFT_GREEN;
+    TFT_YELLOW;
   }
   else
   {
     AZELcolor = TFT_RED; // Default or another color if required
+  }
+  if (sat.satEl > 30)
+  {
+    AZELcolor = TFT_GREEN;
   }
   displayElevation(sat.satEl, 5 + 30, 108, AZELcolor, refresh);
   displayAzimuth(sat.satAz, 303 - 30, 108, AZELcolor, refresh);
@@ -3020,14 +3439,22 @@ void displayMainPage()
   displayLTLEage(startYmain + 2 * deltaY, refresh);
 
   int shifting = 40;
-  int nextPass = 295;
-  tft.setCursor(shifting, nextPass);
-  tft.setTextColor(TFT_CYAN);
-  tft.print("Next Pass in ");
-  displayTimeRightAligned(tft.textWidth("Next pass in 00:00:00 ") + shifting, nextPass, nextpassInSec, TFT_CYAN, refresh);
-  tft.setCursor(tft.textWidth("Next pass in 00:00:00  ") + shifting, nextPass);
-  tft.print(" at ");
-  tft.print(formatTimeOnly(nextPassStart, true));
+  int lowerBannerY = 295;
+  tft.setCursor(shifting, lowerBannerY);
+  if (sat.satEl < 0)
+  {
+    tft.setCursor(shifting, lowerBannerY);
+    tft.setTextColor(TFT_CYAN);
+    tft.print("Next Pass in ");
+    displayTimeRightAligned(tft.textWidth("Next pass in 00:00:00 ") + shifting, lowerBannerY, nextpassInSec, TFT_CYAN, refresh);
+    tft.setCursor(tft.textWidth("Next pass in 00:00:00  ") + shifting, lowerBannerY);
+    tft.print(" at ");
+    tft.print(formatTimeOnly(nextPassStart, true));
+  }
+  else
+  {
+    tft.print("Satelitte Visibility for 12:56");
+  }
 
   Serial.print("nextPassStart:  ");
   Serial.println(nextPassStart);
