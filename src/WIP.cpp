@@ -1331,10 +1331,11 @@ void updateBigClock(bool refresh = false)
   // Perform initial calculation of clock width and position if not already done
   if (!isPositionCalculated || refresh == true)
   {
-    String sampleTime = "23:59:59"; // Sample time format for clock width calculation
+    String sampleTime = "00:00:00"; // Sample time format for clock width calculation
     clockWidth = tft.textWidth(sampleTime.c_str());
     clockXPosition = (tft.width() - clockWidth) / 2; // Center x position for the clock
     isPositionCalculated = true;                     // Mark as calculated
+    previousTime="";
   }
 
   // Get current UTC time in seconds
@@ -2846,8 +2847,7 @@ void displayMainPage()
   getOrbitNumber(unixtime);
   unixtime = timeClient.getEpochTime(); // Get the current UNIX timestamp
   unsigned long nextpassInSec = nextPassStart - unixtime;
-
-  updateBigClock();
+  updateBigClock(refresh);
 
   // Update the satellite data
   sat.findsat(unixtime);
