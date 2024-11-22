@@ -3,7 +3,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Sgp4.h>
-#include <Ticker.h>
+
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <TFT_eSPI.h>
@@ -23,22 +23,27 @@ PNG png;
 // TLE data URL
 const char *tleUrlMain = "https://tle.ivanstanojevic.me/api/tle/25544";
 const char *tleUrlFallback = "https://live.ariss.org/iss.txt";
-
 // TLE Storage in Flash
 Preferences preferences;
 const char *TLE_PREF_NAMESPACE = "TLE_data";
 const char *TLE_LINE1_KEY = "tle_line1";
 const char *TLE_LINE2_KEY = "tle_line2";
 const char *TLE_TIMESTAMP_KEY = "tle_timestamp";
-char TLE_age[9]; // HH:MM:SS + null-terminator
+char TLEageHHMM[6]; // Buffer to store the formatted age (HH:MM)
+
 bool refresh = false;
+unsigned long lastRefreshTime = 0;
+
+unsigned long lastTLEUpdate = 0;              // Track the last update time
+const unsigned long updateInterval = 3600000; // 1 hour in milliseconds
+
 // Flag to track if time was successfully updated at least once
 bool timeInitialized = false;
 // NTP Client for UTC time
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "129.6.15.28", 0, 60000);
 
-// for the touchscreen (CLEANUP LATER)
+// for the touchscreen
 int touchTFT = 0;
 int touchCounter = 1;
 unsigned long lastTouchTime = 0;
@@ -52,7 +57,6 @@ bool page5Displayed = false;
 bool page6Displayed = false;
 
 Sgp4 sat;
-Ticker tkSecond;
 
 char tleLine1[70];
 char tleLine2[70];
@@ -124,9 +128,8 @@ void TFTprint(const String &text, uint16_t color = TFT_WHITE)
   // Move to the next line for subsequent calls
   currentLine++;
 }
-void printWelcomeMessage()
+void displayWelcomeMessage()
 {
-
   for (int i = 0; i < 30; i++)
   { // Adjust as needed
     Serial.println();
@@ -135,9 +138,9 @@ void printWelcomeMessage()
   String version = String("Version: ") + VERSION_NUMBER + " (" + VERSION_DATE + ")";
   String disclaimer = "Please use at your own risk!";
 
-  TFTprint(title);
-  TFTprint(version);
-  TFTprint(disclaimer);
+  // TFTprint(title);
+  // TFTprint(version);
+  // TFTprint(disclaimer);
   int width = max(max(title.length(), version.length()), disclaimer.length()) + 4; // Adjust frame width
 
   // Print top border
@@ -213,8 +216,10 @@ void connectToWiFi()
     {
       Serial.print("Connecting to alternative Wi-Fi: ");
       Serial.println(WIFI_SSID_ALT);
+            TFTprint("");
+
       String message = "Connecting to alternative Wi-Fi: " + String(WIFI_SSID_ALT);
-      TFTprint(message);
+      TFTprint(message,TFT_YELLOW);
       WiFi.begin(WIFI_SSID_ALT, WIFI_PASSWORD_ALT);
     }
 
@@ -224,7 +229,7 @@ void connectToWiFi()
       if (WiFi.status() == WL_CONNECTED)
       {
         Serial.println("\nConnected to Wi-Fi.");
-        TFTprint("Connected to Wi-Fi", TFT_GREEN);
+        TFTprint("Wi-Fi Connection Successful", TFT_GREEN);
 
         connected = true;
         break;
@@ -241,7 +246,9 @@ void connectToWiFi()
       if (attempt == maxAttempts * 2)
       {
         Serial.println("\nFailed to connect to both networks. Retrying...");
-        TFTprint("Failed to connect to both networks. Retrying...", TFT_RED);
+        TFTprint("Failed to connect to both networks", TFT_RED);
+        delay(1000);
+        TFTprint("Retrying...", TFT_RED);
 
         attempt = 0; // Reset attempts to retry both networks
       }
@@ -253,7 +260,6 @@ void connectToWiFi()
     }
   }
 }
-// Function to retrieve timezone data from TimeZoneDB API
 void getTimezoneData()
 {
   // Inform the user that the process of getting timezone data is starting
@@ -334,11 +340,13 @@ void getTimezoneData()
 
   // If we exit the loop, all retries failed, reboot the ESP32
   Serial.println("Failed to retrieve timezone data after multiple attempts. Rebooting...");
-  TFTprint("Failed to retrieve timezone data. Rebooting...", TFT_RED);
-  delay(1000);   // Brief delay to display the message before reboot
+  TFTprint("Failed to retrieve timezone data.", TFT_RED);
+    TFTprint("Check your API key.", TFT_YELLOW);
+    TFTprint("");
+    TFTprint("Rebooting...", TFT_RED);
+  delay(1500);   // Brief delay to display the message before reboot
   ESP.restart(); // Reboot the ESP32
 }
-// Function to synchronize time from NTP servers
 void syncTimeFromNTP()
 {
   // List of NTP server IPs with corresponding server names
@@ -426,312 +434,293 @@ void syncTimeFromNTP()
     ESP.restart(); // Reboot the ESP32
   }
 }
-
-bool getTLEelementsFallback(char *tleLine1, char *tleLine2)
+bool getTLEelements(char *tleLine1, char *tleLine2, bool displayTLEinfoOnTFT)
 {
-  Serial.println("");
-  Serial.println("Attempting to fetch TLE data (Fallback Method)...");
-  TFTprint("Fetching TLE data (Fallback)...", TFT_YELLOW);
+  Serial.println("\n--- Retrieving TLE Data from Preferences ---");
 
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    HTTPClient http;
-    http.begin(tleUrlFallback);
-    int httpCode = http.GET();
-
-    if (httpCode == 200)
-    {
-      String payload = http.getString();
-      int line1Start = payload.indexOf('\n') + 1;
-      int line2Start = payload.indexOf('\n', line1Start) + 1;
-
-      if (line1Start > 0 && line2Start > line1Start)
-      {
-        payload.substring(line1Start, line1Start + 69).toCharArray(tleLine1, 70);
-        payload.substring(line2Start, line2Start + 69).toCharArray(tleLine2, 70);
-
-        // Extract TLE epoch from Line 1
-        int epochYear = String(tleLine1).substring(18, 20).toInt() + 2000;
-        float epochDay = String(tleLine1).substring(20, 32).toFloat();
-        struct tm epochTime = {0};
-        epochTime.tm_year = epochYear - 1900;
-        epochTime.tm_mday = 1;
-        epochTime.tm_mon = 0;
-        time_t tleEpochUnix = mktime(&epochTime) + (unsigned long)((epochDay - 1) * 86400);
-
-        // Validate unixtime and tleEpochUnix
-        Serial.print("unixtime: ");
-        Serial.println(unixtime);
-        Serial.print("tleEpochUnix: ");
-        Serial.println(tleEpochUnix);
-
-        if (unixtime <= tleEpochUnix)
-        {
-          Serial.println("Error: Invalid unixtime or TLE epoch.");
-          TFTprint("Invalid time data.", TFT_RED);
-          return false;
-        }
-
-        // Calculate TLE age
-        unsigned long ageInSeconds = unixtime - tleEpochUnix;
-
-        unsigned long ageInDays = ageInSeconds / 86400;
-        unsigned long remainingSeconds = ageInSeconds % 86400;
-        unsigned long ageInHours = remainingSeconds / 3600;
-        unsigned long ageInMinutes = (remainingSeconds % 3600) / 60;
-
-        // Format TLE age as DD:HH:MM
-        char ageFormatted[30];
-        sprintf(ageFormatted, "%lu days, %lu hours, %lu minutes", ageInDays, ageInHours, ageInMinutes);
-
-        // Format TLE age as HH:MM and assign it to TLE_age
-        sprintf(TLE_age, "%02lu:%02lu", ageInHours, ageInMinutes); // Format as HH:MM
-
-        // Store TLE data in preferences
-        preferences.begin(TLE_PREF_NAMESPACE, false);
-        preferences.putString(TLE_LINE1_KEY, tleLine1);
-        preferences.putString(TLE_LINE2_KEY, tleLine2);
-        preferences.putULong(TLE_TIMESTAMP_KEY, unixtime);
-        preferences.end();
-
-        Serial.println("TLE data fetched and stored successfully (Fallback Method).");
-        Serial.println("TLE Line 1: " + String(tleLine1));
-        Serial.println("TLE Line 2: " + String(tleLine2));
-        Serial.println("TLE age: " + String(ageFormatted));
-
-        TFTprint("TLE fetched and stored.", TFT_GREEN);
-        TFTprint("TLE Line 1: ", TFT_GREEN);
-        TFTprint(String(tleLine1), TFT_CYAN);
-        TFTprint("", TFT_BLACK);
-        TFTprint("TLE Line 2: ", TFT_GREEN);
-        TFTprint(String(tleLine2), TFT_CYAN);
-        TFTprint("", TFT_BLACK);
-        TFTprint("TLE Age: " + String(ageFormatted), TFT_WHITE);
-        return true;
-      }
-      else
-      {
-        Serial.println("Error parsing TLE data.");
-        TFTprint("Error parsing TLE data.", TFT_RED);
-      }
-    }
-    else
-    {
-      Serial.print("HTTP error while fetching TLE: ");
-      Serial.println(httpCode);
-      TFTprint("HTTP error: " + String(httpCode), TFT_RED);
-    }
-    http.end();
-  }
-  else
-  {
-    Serial.println("Not connected to WiFi. Cannot fetch TLE data.");
-    TFTprint("WiFi not connected.", TFT_RED);
-  }
-
-  // If fetching TLE data fails
-  Serial.println("Failed to fetch TLE data. Will reboot in 3 seconds...");
-  TFTprint("TLE fetch failed. Rebooting in 3s...", TFT_RED);
-  delay(3000); // Wait for 3 seconds before reboot
-  ESP.restart();
-  return false; // This line won't actually execute due to the reboot
-}
-
-bool getTLEelementsMain(char *tleLine1, char *tleLine2)
-{
-  bool tleLoaded = false;
-  bool isFirstDownload = false;
-  bool isDataUpdated = false;
-
-  Serial.println("Attempting to fetch TLE data (Main Method)...");
-  TFTprint("Fetching TLE data (Main)...", TFT_YELLOW);
-
-  // Try to load TLE from flash
+  // Open preferences in read-only mode
   preferences.begin(TLE_PREF_NAMESPACE, true);
   String storedLine1 = preferences.getString(TLE_LINE1_KEY, "");
   String storedLine2 = preferences.getString(TLE_LINE2_KEY, "");
-
+  unsigned long storedTLETime = preferences.getULong(TLE_TIMESTAMP_KEY, 0);
   preferences.end();
 
-  if (storedLine1.length() == 69 && storedLine2.length() == 69)
+  // Validate stored TLE data
+  if (storedLine1.isEmpty() || storedLine2.isEmpty() || storedTLETime == 0)
   {
-    // Extract TLE epoch from storedLine1
-    int epochYear = storedLine1.substring(18, 20).toInt() + 2000; // Year (2-digit to full year)
-    float epochDay = storedLine1.substring(20, 32).toFloat();     // Day of the year
-    struct tm epochTime = {0};
-    epochTime.tm_year = epochYear - 1900; // tm_year is years since 1900
-    epochTime.tm_mday = 1;                // Start from January 1st
-    epochTime.tm_mon = 0;
-    time_t tleEpochUnix = mktime(&epochTime) + (unsigned long)((epochDay - 1) * 86400);
-
-    // Calculate age of TLE
-    unsigned long ageInSeconds = unixtime - tleEpochUnix;
-    unsigned long ageInDays = ageInSeconds / 86400;
-    unsigned long remainingSeconds = ageInSeconds % 86400;
-    unsigned long ageInHours = remainingSeconds / 3600;
-    unsigned long ageInMinutes = (remainingSeconds % 3600) / 60;
-
-    // Format TLE age as DD:HH:MM
-    char ageFormatted[30];
-    sprintf(ageFormatted, "%lu days, %lu hours, %lu minutes", ageInDays, ageInHours, ageInMinutes);
-
-    // Format TLE age as HH:MM and assign it to TLE_age
-    sprintf(TLE_age, "%02lu:%02lu", ageInHours, ageInMinutes); // Format as HH:MM
-
-    // Print and TFT display the TLE data
-    TFTprint("TLE Age: " + String(ageFormatted), TFT_WHITE);
-
-    Serial.println("TLE lines are valid:");
-    Serial.println("TLE Line 1: " + storedLine1);
-    Serial.println("TLE Line 2: " + storedLine2);
-    Serial.println("TLE Age: " + String(ageFormatted));
-
-    TFTprint("TLE lines are valid.", TFT_GREEN);
-    TFTprint("TLE Line 1: ", TFT_GREEN);
-    TFTprint(storedLine1, TFT_CYAN);
-    TFTprint("", TFT_BLACK);
-    TFTprint("TLE Line 2: ", TFT_GREEN);
-    TFTprint(storedLine2, TFT_CYAN);
-    TFTprint("", TFT_BLACK);
-
-    if (ageInSeconds < TLE_UPDATE_INTERVAL)
-    {
-      // Data is valid and within update interval
-      storedLine1.toCharArray(tleLine1, 70);
-      storedLine2.toCharArray(tleLine2, 70);
-      tleLoaded = true;
-    }
-    else
-    {
-      // Data is too old, fetch new data
-      Serial.println("Stored TLE is outdated. Fetching new TLE data...");
-      TFTprint("TLE outdated. Fetching new...", TFT_YELLOW);
-      isDataUpdated = true;
-    }
-  }
-  else
-  {
-    // No valid TLE data found in preferences
-    Serial.println("No TLE data found. This is the first download.");
-    TFTprint("No TLE found. First download.", TFT_YELLOW);
-    isFirstDownload = true;
+    Serial.println("No valid TLE data found in preferences.");
+    return false;
   }
 
-  // Fetch new TLE data from the internet if necessary
-  if (!tleLoaded && WiFi.status() == WL_CONNECTED)
+  // Calculate TLE age
+  unsigned long ageInSeconds = unixtime - storedTLETime;
+  unsigned long ageInDays = ageInSeconds / 86400;
+  unsigned long remainingSeconds = ageInSeconds % 86400;
+  unsigned long ageInHours = remainingSeconds / 3600;
+  unsigned long ageInMinutes = (remainingSeconds % 3600) / 60;
+
+  // Format TLE age for display
+  char ageFormatted[50];
+  sprintf(ageFormatted, "%lu days, %lu hours, %lu minutes", ageInDays, ageInHours, ageInMinutes);
+
+  // Format age for HH:MM variable
+  sprintf(TLEageHHMM, "%02lu:%02lu", ageInHours, ageInMinutes);
+
+  // Debug outputs
+  Serial.println("TLE data retrieved successfully:");
+  Serial.println("  TLE Line 1: " + storedLine1);
+  Serial.println("  TLE Line 2: " + storedLine2);
+  Serial.println("  TLE Age: " + String(ageFormatted));
+
+  if (displayTLEinfoOnTFT)
+    TFTprint("TLE Line 1:", TFT_GREEN);
+  TFTprint(storedLine1, TFT_YELLOW);
+  TFTprint("");
+  TFTprint("TLE Line 2:", TFT_GREEN);
+  TFTprint(storedLine2, TFT_YELLOW);
+  TFTprint("");
+  TFTprint("TLE Age: " + String(ageFormatted), TFT_GREEN);
+
+  // Copy stored TLE lines to output parameters
+  storedLine1.toCharArray(tleLine1, 70);
+  storedLine2.toCharArray(tleLine2, 70);
+
+  return true;
+}
+
+void processTLE(String line1, String line2, String tleDate, time_t &youngestTLETime, String &youngestTLELine1, String &youngestTLELine2);
+
+bool refreshTLEelements(bool displayTLEinfoOnTFT)
+{
+  const char *servers[] = {tleUrlMain, tleUrlFallback}; // List of TLE servers
+  time_t youngestTLETime = 0;                           // Timestamp of the youngest TLE found
+  String youngestTLELine1 = "";                         // Line 1 of the youngest TLE
+  String youngestTLELine2 = "";                         // Line 2 of the youngest TLE
+  bool retryNeeded = false;
+
+  Serial.println("\n--- Starting TLE Refresh Process ---");
+
+  // Iterate through both servers
+  for (int i = 0; i < sizeof(servers) / sizeof(servers[0]); ++i)
   {
+    Serial.println("\nContacting server: " + String(servers[i]));
+
     HTTPClient http;
-    http.begin(tleUrlMain); // Use the main TLE URL
+    http.begin(servers[i]);
     int httpCode = http.GET();
 
     if (httpCode == 200)
     {
+      Serial.println("Server responded successfully.");
       String payload = http.getString();
-      DynamicJsonDocument doc(1024);
+      Serial.println("Raw response from server:");
+      Serial.println(payload);
 
-      DeserializationError error = deserializeJson(doc, payload);
-      if (!error)
+      String line1, line2, tleDate;
+
+      // Check if the response is JSON or plain text
+      if (payload.startsWith("{"))
       {
-        // Extract TLE data
-        String line1 = doc["line1"];
-        String line2 = doc["line2"];
-        String tleDate = doc["date"]; // ISO 8601 format
+        // Process JSON response
+        DynamicJsonDocument doc(1024);
+        DeserializationError error = deserializeJson(doc, payload);
+        if (!error)
+        {
+          line1 = String(doc["line1"].as<const char *>());
+          line2 = String(doc["line2"].as<const char *>());
+          tleDate = String(doc["date"].as<const char *>());
+        }
+        else
+        {
+          Serial.println("JSON parsing error: " + String(error.c_str()));
+          retryNeeded = true;
+          continue;
+        }
+      }
+      else
+      {
+        // Process plain text response
+        int line1Start = payload.indexOf("\n1 ");
+        int line2Start = payload.indexOf("\n2 ", line1Start);
+        if (line1Start != -1 && line2Start != -1)
+        {
+          line1 = payload.substring(line1Start + 1, line2Start);
+          line2 = payload.substring(line2Start + 1);
+          tleDate = ""; // No explicit date in plain text
+        }
+        else
+        {
+          Serial.println("Failed to extract TLE data from plain text response.");
+          retryNeeded = true;
+          continue;
+        }
+      }
 
-        // Parse ISO 8601 date into Unix timestamp
+      // Process TLE data
+      time_t tleEpochUnix = 0;
+      if (tleDate != "")
+      {
+        // Parse ISO 8601 date
         struct tm tleTime = {0};
         sscanf(tleDate.c_str(), "%4d-%2d-%2dT%2d:%2d:%2d",
                &tleTime.tm_year, &tleTime.tm_mon, &tleTime.tm_mday,
                &tleTime.tm_hour, &tleTime.tm_min, &tleTime.tm_sec);
-        tleTime.tm_year -= 1900; // Adjust year
-        tleTime.tm_mon -= 1;     // Adjust month (0-11)
-        time_t tleEpochUnix = mktime(&tleTime);
-
-        // Calculate TLE age
-        unsigned long ageInSeconds = unixtime - tleEpochUnix;
-        unsigned long ageInDays = ageInSeconds / 86400;
-        unsigned long remainingSeconds = ageInSeconds % 86400;
-        unsigned long ageInHours = remainingSeconds / 3600;
-        unsigned long ageInMinutes = (remainingSeconds % 3600) / 60;
-
-        // Format TLE age
-        // Format TLE age
-        char ageFormatted[50];
-        sprintf(ageFormatted, "%lu days, %lu hours, %lu minutes", ageInDays, ageInHours, ageInMinutes);
-
-        // Format TLE age as HH:MM and assign it to TLE_age
-        sprintf(TLE_age, "%02lu:%02lu", ageInHours, ageInMinutes); // Format as HH:MM
-
-        // Print the results
-        printf("Formatted TLE age (DD:HH:MM): %s\n", ageFormatted);
-        printf("Formatted TLE age (HH:MM:SS): %s\n", TLE_age);
-
-        line1.toCharArray(tleLine1, 70);
-        line2.toCharArray(tleLine2, 70);
-        tleLoaded = true;
-
-        // Store TLE data in preferences
-        preferences.begin(TLE_PREF_NAMESPACE, false);
-        preferences.putString(TLE_LINE1_KEY, tleLine1);
-        preferences.putString(TLE_LINE2_KEY, tleLine2);
-        preferences.putULong(TLE_TIMESTAMP_KEY, unixtime);
-        preferences.end();
-
-        // Print success message
-        Serial.println("TLE data fetched and stored successfully (Main Method).");
-        Serial.println("TLE Line 1: " + String(tleLine1));
-        Serial.println("TLE Line 2: " + String(tleLine2));
-        Serial.println("TLE Age: " + String(ageFormatted));
-
-        TFTprint("TLE fetched and stored.", TFT_GREEN);
-        TFTprint("TLE Line 1: ", TFT_GREEN);
-        TFTprint(String(tleLine1), TFT_CYAN);
-        TFTprint("", TFT_BLACK);
-        TFTprint("TLE Line 2: ", TFT_GREEN);
-        TFTprint(String(tleLine2), TFT_CYAN);
-        TFTprint("", TFT_BLACK);
-        TFTprint("TLE Age: " + String(ageFormatted), TFT_WHITE);
+        tleTime.tm_year -= 1900;
+        tleTime.tm_mon -= 1;
+        tleEpochUnix = mktime(&tleTime);
       }
       else
       {
-        Serial.println("JSON parsing error while fetching TLE data.");
-        TFTprint("JSON parsing error.", TFT_RED);
+        // Extract epoch from Line 1 for plain text
+        int epochYear = line1.substring(18, 20).toInt() + 2000;
+        float epochDay = line1.substring(20, 32).toFloat();
+
+        struct tm tleTime = {0};
+        tleTime.tm_year = epochYear - 1900;
+        tleTime.tm_mday = 1;
+        tleTime.tm_mon = 0;
+        tleEpochUnix = mktime(&tleTime) + (unsigned long)((epochDay - 1) * 86400);
+      }
+
+      // Calculate TLE age
+      unsigned long ageInSeconds = unixtime - tleEpochUnix;
+      unsigned long ageInDays = ageInSeconds / 86400;
+      unsigned long remainingSeconds = ageInSeconds % 86400;
+      unsigned long ageInHours = remainingSeconds / 3600;
+      unsigned long ageInMinutes = (remainingSeconds % 3600) / 60;
+
+      char ageFormatted[50];
+      sprintf(ageFormatted, "%lu days, %lu hours, %lu minutes", ageInDays, ageInHours, ageInMinutes);
+      Serial.println("TLE Age from server: " + String(ageFormatted));
+
+      // Compare with the current youngest TLE
+      if (youngestTLETime == 0 || tleEpochUnix > youngestTLETime)
+      {
+        youngestTLETime = tleEpochUnix;
+        youngestTLELine1 = line1;
+        youngestTLELine2 = line2;
+        Serial.println("This TLE is retained as the youngest so far.");
       }
     }
     else
     {
-      Serial.print("HTTP error while fetching TLE: ");
-      Serial.println(httpCode);
-      TFTprint("HTTP error: " + String(httpCode), TFT_RED);
+      Serial.println("HTTP error for server: " + String(servers[i]));
+      Serial.println("HTTP Code: " + String(httpCode));
+      retryNeeded = true;
     }
     http.end();
   }
-  else if (!tleLoaded)
+
+  // If no valid TLE was found, return without updating
+  if (youngestTLETime == 0)
   {
-    Serial.println("WiFi not connected. Cannot fetch TLE data.");
-    TFTprint("WiFi not connected.", TFT_RED);
+    Serial.println("No valid TLE data found from any server.");
+    return retryNeeded;
   }
 
-  // Use fallback if TLE data couldn't be fetched or loaded
-  if (!tleLoaded)
+  // Open preferences and print stored TLE age
+  preferences.begin(TLE_PREF_NAMESPACE, true);
+  unsigned long storedTLETime = preferences.getULong(TLE_TIMESTAMP_KEY, 0);
+  preferences.end();
+
+  if (storedTLETime > 0)
   {
-    Serial.println("Main method failed. Falling back...");
-    TFTprint("Main method failed. Falling back...", TFT_YELLOW);
-    return getTLEelementsFallback(tleLine1, tleLine2);
+    unsigned long storedAgeInSeconds = unixtime - storedTLETime;
+    unsigned long storedAgeInDays = storedAgeInSeconds / 86400;
+    unsigned long remainingSeconds = storedAgeInSeconds % 86400;
+    unsigned long storedAgeInHours = remainingSeconds / 3600;
+    unsigned long storedAgeInMinutes = (remainingSeconds % 3600) / 60;
+
+    char storedAgeFormatted[50];
+    sprintf(storedAgeFormatted, "%lu days, %lu hours, %lu minutes", storedAgeInDays, storedAgeInHours, storedAgeInMinutes);
+
+    Serial.println("\nCurrently Stored TLE Age:");
+    Serial.println("  Age: " + String(storedAgeFormatted));
+  }
+  else
+  {
+    Serial.println("\nNo TLE data currently stored. This is the first update.");
+    if (displayTLEinfoOnTFT)
+      TFTprint("Very first TLE Update");
   }
 
-  // Final messages for first download or update
-  if (tleLoaded && isFirstDownload)
+  // Decide whether to update preferences
+  if (storedTLETime == 0 || youngestTLETime > storedTLETime)
   {
-    Serial.println("First TLE download complete.");
-    TFTprint("First TLE download complete.", TFT_GREEN);
+    Serial.println("\nDecision: Updating stored TLE data with the youngest TLE.");
+    preferences.begin(TLE_PREF_NAMESPACE, false);
+    preferences.putString(TLE_LINE1_KEY, youngestTLELine1);
+    preferences.putString(TLE_LINE2_KEY, youngestTLELine2);
+    preferences.putULong(TLE_TIMESTAMP_KEY, youngestTLETime);
+    preferences.end();
+
+    Serial.println("New TLE data stored successfully:");
+    Serial.println("  Line 1: " + youngestTLELine1);
+    Serial.println("  Line 2: " + youngestTLELine2);
   }
-  else if (tleLoaded && isDataUpdated)
+  else
   {
-    Serial.println("TLE data updated successfully.");
-    TFTprint("TLE updated successfully.", TFT_GREEN);
+    Serial.println("\nDecision: No update needed. Stored TLE is newer or the same.");
+    if (displayTLEinfoOnTFT)
+      TFTprint("No TLE update (stored are newer or same)");
   }
 
-  return tleLoaded;
+  return retryNeeded;
+}
+
+// Helper function to process and compare TLE
+void processTLE(String line1, String line2, String tleDate, time_t &youngestTLETime, String &youngestTLELine1, String &youngestTLELine2)
+{
+  time_t tleEpochUnix = 0;
+
+  if (tleDate != "")
+  {
+    // Parse ISO 8601 date from JSON into Unix timestamp
+    struct tm tleTime = {0};
+    sscanf(tleDate.c_str(), "%4d-%2d-%2dT%2d:%2d:%2d",
+           &tleTime.tm_year, &tleTime.tm_mon, &tleTime.tm_mday,
+           &tleTime.tm_hour, &tleTime.tm_min, &tleTime.tm_sec);
+    tleTime.tm_year -= 1900; // Adjust year
+    tleTime.tm_mon -= 1;     // Adjust month (0-11)
+    tleEpochUnix = mktime(&tleTime);
+  }
+  else
+  {
+    // Extract timestamp from Line 1 (Plain Text)
+    int epochYear = line1.substring(18, 20).toInt() + 2000; // Convert 2-digit year to full year
+    float epochDay = line1.substring(20, 32).toFloat();     // Extract fractional day of the year
+
+    // Convert to Unix timestamp
+    struct tm tleTime = {0};
+    tleTime.tm_year = epochYear - 1900; // tm_year is years since 1900
+    tleTime.tm_mday = 1;                // Start from January 1st
+    tleTime.tm_mon = 0;
+    tleEpochUnix = mktime(&tleTime) + (unsigned long)((epochDay - 1) * 86400); // Add fractional days
+  }
+
+  // Calculate TLE age
+  unsigned long ageInSeconds = unixtime - tleEpochUnix;
+  unsigned long ageInDays = ageInSeconds / 86400;
+  unsigned long remainingSeconds = ageInSeconds % 86400;
+  unsigned long ageInHours = remainingSeconds / 3600;
+  unsigned long ageInMinutes = (remainingSeconds % 3600) / 60;
+
+  char ageFormatted[50];
+  sprintf(ageFormatted, "%lu days, %lu hours, %lu minutes", ageInDays, ageInHours, ageInMinutes);
+  Serial.println("  TLE Age: " + String(ageFormatted));
+
+  // Compare age with the current youngest TLE
+  if (tleEpochUnix > youngestTLETime)
+  {
+    Serial.println("  This is the youngest TLE found so far.");
+    youngestTLETime = tleEpochUnix;
+    youngestTLELine1 = line1;
+    youngestTLELine2 = line2;
+  }
+  else
+  {
+    Serial.println("  TLE from this server is older than the current youngest.");
+  }
 }
 
 // Main Function: Calculate and update the global orbitNumber
@@ -1100,7 +1089,7 @@ void displayAzElPlotPage()
   tft.setCursor(45, 270); // Position for additional info below the plot
   tft.setTextColor(TFT_GOLD, TFT_BLACK);
   tft.print("AOS: ");
-  tft.print(formatTimeOnly(nextPassStart, true)); // xxx
+  tft.print(formatTimeOnly(nextPassStart, true));
   tft.print(" | LOS: ");
   tft.println(formatTimeOnly(nextPassEnd, true));
   tft.setCursor(90, 296); // Position for additional info below the plot
@@ -1327,106 +1316,6 @@ void displayPolarPlotPage()
   tft.fillCircle(x, y, 3, TFT_RED); // Red dot for LOS
 }
 
-/*
-void calculateNextPassOlMethodNotUsed()
-{
-  Serial.println("Calculating Next Pass...");
-
-  // Reset global variables for the next pass
-  nextPassStart = 0;
-  nextPassEnd = 0;
-  nextPassMaxTCA = 0;
-  nextPassCulminationTime = 0;
-  nextPassAOSAzimuth = 0;
-  nextPassLOSAzimuth = 0;
-  culminationAzimuth = 0;
-  nextPassPerigee = 0;
-  passDuration = 0;
-  passMinutes = 0;
-  passSeconds = 0;
-
-  bool passFound = false;
-
-  while (!passFound)
-  {
-    bool passInProgress = false;
-
-    // Check if the satellite is already above the horizon at the current time
-    sat.findsat(unixtime);
-    if (sat.satEl > MIN_ELEVATION)
-    {
-      nextPassStart = unixtime;
-      nextPassAOSAzimuth = sat.satAz;
-      passInProgress = true;
-    }
-
-    // Iterate through the time to find the next pass
-    for (unsigned long t = unixtime + timeStep; t < unixtime + 86400; t += timeStep)
-    {
-      sat.findsat(t);
-
-      if (sat.satEl > MIN_ELEVATION)
-      {
-        if (!passInProgress)
-        {
-          passInProgress = true;
-          nextPassStart = t;
-          nextPassAOSAzimuth = sat.satAz;
-          nextPassMaxTCA = sat.satEl;
-          nextPassCulminationTime = t;
-          nextPassPerigee = sat.satDist;
-        }
-        else
-        {
-          if (sat.satEl > nextPassMaxTCA)
-          {
-            nextPassMaxTCA = sat.satEl;
-            nextPassCulminationTime = t;
-            culminationAzimuth = sat.satAz; // Update culmination azimuth
-          }
-          if (sat.satDist < nextPassPerigee)
-          {
-            nextPassPerigee = sat.satDist;
-          }
-        }
-        nextPassEnd = t;
-        nextPassLOSAzimuth = sat.satAz;
-      }
-      else if (passInProgress)
-      {
-        // Pass has ended
-        break;
-      }
-    }
-
-    // Check if the pass meets the minimum elevation requirement
-    if (nextPassMaxTCA >= MIN_ELEVATION)
-    {
-      passFound = true;
-    }
-    else
-    {
-      Serial.println("Ignored pass due to low elevation.");
-      unixtime = nextPassEnd + timeStep; // Skip to after the current pass
-    }
-  }
-
-  // Calculate pass duration in minutes and seconds
-  passDuration = nextPassEnd - nextPassStart;
-  passMinutes = passDuration / 60;
-  passSeconds = passDuration % 60;
-
-  // Print pass details to Serial
-  Serial.println("Next Pass Details:");
-  Serial.println("------------------");
-  Serial.println("AOS: " + formatTime(nextPassStart, true) + " @ Azimuth: " + String(nextPassAOSAzimuth, 2) + "°");
-  Serial.println("TCA: " + formatTime(nextPassCulminationTime, true) + " @ Max Elevation: " + String(nextPassMaxTCA, 2) + "°");
-  Serial.println("LOS: " + formatTime(nextPassEnd, true) + " @ Azimuth: " + String(nextPassLOSAzimuth, 2) + "°");
-  Serial.println("Pass Duration: " + String(passMinutes) + " minutes " + String(passSeconds) + " seconds");
-  Serial.println("------------------");
-}
-*/
-
 void updateBigClock(bool refresh = false)
 {
   int y = 0;
@@ -1439,15 +1328,8 @@ void updateBigClock(bool refresh = false)
   static int clockXPosition; // Calculated once to center the clock text
   static int clockWidth;     // Width of the time string in pixels
 
-  // If refresh is true, reset the static variables to their initial state
-  if (refresh)
-  {
-    previousTime = "";
-    isPositionCalculated = false;
-  }
-
   // Perform initial calculation of clock width and position if not already done
-  if (!isPositionCalculated)
+  if (!isPositionCalculated || refresh == true)
   {
     String sampleTime = "23:59:59"; // Sample time format for clock width calculation
     clockWidth = tft.textWidth(sampleTime.c_str());
@@ -1510,7 +1392,7 @@ void displayElevation(float number, int x, int y, uint16_t color, bool refresh)
   char tempBuffer[7];                                       // Temporary buffer to hold the formatted string
   snprintf(tempBuffer, sizeof(tempBuffer), "%.1f", number); // Format number without the sign
 
-  // Dynamically fill the `output` array from the right
+  // Dynamically fill the output array from the right
   int len = strlen(tempBuffer); // Length of the formatted number
   int startIndex = 5 - len;     // Calculate starting index for right alignment
   for (int i = 0; i < len; i++)
@@ -1604,7 +1486,7 @@ void displayAzimuth(float number, int x, int y, uint16_t color, bool refresh)
   char tempBuffer[7];                                       // Temporary buffer to hold the formatted string
   snprintf(tempBuffer, sizeof(tempBuffer), "%.1f", number); // Format number without the sign
 
-  // Dynamically fill the `output` array from the right
+  // Dynamically fill the output array from the right
   int len = strlen(tempBuffer); // Length of the formatted number
   int startIndex = 5 - len;     // Calculate starting index for right alignment
   for (int i = 0; i < len; i++)
@@ -1683,76 +1565,7 @@ void displayAzimuth(float number, int x, int y, uint16_t color, bool refresh)
     }
   }
 }
-/*
-void displayLatLon(int x, int y, float val)
-{
-  static float prevVal = -1.0;
-  static int digitPositions[5]; // Store x-positions of each digit for "359.9" format
-  static int decimalPos;
-  static bool isInitialized = false;
 
-  // Initialize digit positions, decimal point position, and draw rectangle and label once
-  tft.setTextFont(4);
-  tft.setTextSize(1);
-
-  if (!isInitialized)
-  {
-    String sample = "-90.0";
-    tft.setTextColor(TFT_BLACK, TFT_BLACK); // Print in black to capture digit positions
-    tft.setCursor(x, y);
-
-    // Capture x-coordinates for each character in the sample, with special handling for the decimal point
-    for (int i = 0; i < sample.length(); i++)
-    {
-      digitPositions[i] = tft.getCursorX(); // Capture position for each character
-      if (sample[i] == '.')
-      {
-        decimalPos = digitPositions[i]; // Save the specific position for the decimal point
-      }
-      tft.print(sample[i]);
-
-      // Draw the decimal point once at its fixed position
-      tft.setTextColor(TFT_GREEN, TFT_BLACK);
-      tft.setCursor(decimalPos, y);
-      tft.print(".");
-      isInitialized = true;
-    }
-
-    // Determine the color based on elevation value
-
-    int color = TFT_GOLD;
-
-    // Format val with exactly one decimal place
-    char valStr[8];
-    sprintf(valStr, "%5.1f", val);
-    char prevValStr[8];
-    sprintf(prevValStr, "%5.1f", prevVal);
-
-    // Update only digits that have changed, ensuring minus sign changes color too
-    for (int i = 0; i < 5; i++)
-    {
-      if (valStr[i] != prevValStr[i] || (valStr[i] == '-' && color != TFT_RED))
-      {
-        tft.setCursor(digitPositions[i], y);
-        tft.setTextColor(TFT_BLACK, TFT_BLACK);
-        tft.print(prevValStr[i]);
-
-        tft.setCursor(digitPositions[i], y);
-        tft.setTextColor(color, TFT_BLACK);
-        tft.print(valStr[i]);
-      }
-    }
-
-    // Update decimal point color to match digits
-    tft.setCursor(decimalPos, y);
-    tft.setTextColor(color, TFT_BLACK);
-    tft.print(".");
-
-    // Update prevVal to the current value
-    prevVal = val;
-  }
-}
-*/
 void displayLatitude(float number, int x, int y, uint16_t color, bool refresh)
 {
   tft.setTextSize(1);
@@ -1767,7 +1580,7 @@ void displayLatitude(float number, int x, int y, uint16_t color, bool refresh)
   char tempBuffer[8];                                        // Temporary buffer to hold the formatted string
   snprintf(tempBuffer, sizeof(tempBuffer), "%+.1f", number); // Format number
 
-  // Dynamically fill the `output` array from the right
+  // Dynamically fill the output array from the right
   int len = strlen(tempBuffer); // Length of the formatted number
   int startIndex = 6 - len;     // Calculate starting index for right alignment
   for (int i = 0; i < len; i++)
@@ -1839,7 +1652,7 @@ void displayLongitude(float number, int x, int y, uint16_t color, bool refresh)
   char tempBuffer[8];                                        // Temporary buffer to hold the formatted string
   snprintf(tempBuffer, sizeof(tempBuffer), "%+.1f", number); // Format number
 
-  // Dynamically fill the `output` array from the right
+  // Dynamically fill the output array from the right
   int len = strlen(tempBuffer); // Length of the formatted number
   int startIndex = 6 - len;     // Calculate starting index for right alignment
   for (int i = 0; i < len; i++)
@@ -1939,7 +1752,7 @@ void displayLTLEage(int y, bool refresh)
     tft.setCursor(276, y);
     tft.print("TLE age:");
     tft.setCursor(388, y);
-    tft.print(String(TLE_age));
+    tft.print(String(TLEageHHMM));
     isInitiated = true;
   }
 }
@@ -1950,6 +1763,7 @@ void pngDraw(PNGDRAW *pDraw)
   png.getLineAsRGB565(pDraw, lineBuffer, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
   tft.pushImage(0, 0 + pDraw->y, pDraw->iWidth, 1, lineBuffer);
 }
+
 void displayISSimage(int duration)
 {
   // https://notisrac.github.io/FileToCArray/
@@ -2120,205 +1934,13 @@ void displayPExpedition72image()
   }
 }
 
-void drawFootprintold(int centerX, int centerY, float altitude, float satelliteLat, float satelliteLon)
-{
-  float earthRadius = 6371.0; // Earth's radius in kilometers
-  float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + altitude));
-
-  // Debug: Print calculated footprint radius in km
-  Serial.print("Footprint radius (km): ");
-  Serial.println(footprintRadiusKm);
-
-  // Adjusted scaling factors based on your 420x242 map size
-  float pixelsPerDegreeLat = 242.0 / 180.0; // 242 pixels for 180 degrees latitude (-90 to +90)
-  float pixelsPerDegreeLon = 420.0 / 360.0; // 420 pixels for 360 degrees longitude (-180 to +180)
-
-  // Draw footprint using latitude and longitude
-  for (int angle = 0; angle < 360; angle++)
-  {
-    // Calculate latitude and longitude for each point on the footprint
-    float rad = angle * DEG_TO_RAD; // Convert to radians
-
-    // Use spherical trigonometry to compute new latitude and longitude
-    float deltaLat = footprintRadiusKm * cos(rad) / 111.0;                                    // 1 degree of latitude = 111 km
-    float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(satelliteLat * DEG_TO_RAD)); // Adjust for curvature
-
-    float footprintLat = satelliteLat + deltaLat; // New latitude of footprint point
-    float footprintLon = satelliteLon + deltaLon; // New longitude of footprint point
-
-    // Map lat/lon to screen coordinates
-    int x = centerX + (footprintLon * pixelsPerDegreeLon); // Map longitude to X
-    int y = centerY - (footprintLat * pixelsPerDegreeLat); // Map latitude to Y (invert y-axis)
-
-    // Correct for the map's offset (since map starts at y = 40)
-    y -= 40; // Adjust Y to account for the offset caused by the map's starting point
-
-    // Check bounds before drawing (map screen size: 420x242)
-    if (x >= 0 && x < 420 && y >= 0 && y < 242)
-    {
-      tft.fillCircle(x, y, 1, TFT_GOLD); // Draw a small dot at the calculated position
-      Serial.print("x=:");
-      Serial.print(x);
-      Serial.print("   y=:");
-      Serial.println(y);
-    }
-  }
-}
-
-void drawFootprint(int centerX, int centerY, float altitude, float satelliteLat, float satelliteLon)
-{
-  float earthRadius = 6371.0; // Earth's radius in kilometers
-  float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + altitude));
-
-  // Debug: Print calculated footprint radius in km
-  Serial.print("Footprint radius (km): ");
-  Serial.println(footprintRadiusKm);
-
-  // Latitude and Longitude to Map Pixel Scaling (same as displayMapWithMultiPasses)
-  const int mapWidth = 420;                     // Actual width of the map
-  const int mapHeight = 242;                    // Actual height of the map
-  float pixelsPerDegreeLat = mapHeight / 180.0; // 242 pixels for 180 degrees latitude (-90 to +90)
-  float pixelsPerDegreeLon = mapWidth / 360.0;  // 420 pixels for 360 degrees longitude (-180 to +180)
-
-  // Draw the footprint as an ellipse
-  for (int angle = 0; angle < 360; angle++)
-  {
-    float rad = angle * DEG_TO_RAD; // Convert to radians
-
-    // Calculate latitude and longitude for each point on the footprint
-    float deltaLat = footprintRadiusKm * cos(rad) / 111.0;                                    // 1 degree of latitude = 111 km
-    float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(satelliteLat * DEG_TO_RAD)); // Adjust for Earth's curvature
-
-    float footprintLat = satelliteLat + deltaLat; // Latitude of the footprint point
-    float footprintLon = satelliteLon + deltaLon; // Longitude of the footprint point
-
-    // Convert latitude and longitude to map coordinates
-    int x = map(footprintLon, -180, 180, 0, mapWidth);     // Longitude to x (0 to 420)
-    int y = map(footprintLat, 90, -90, 0, mapHeight) + 40; // Latitude to y (0 to 242) + banner offset
-
-    // Bounds check
-    if (x >= 0 && x < mapWidth && y >= 40 && y < mapHeight + 40)
-    {
-      tft.fillCircle(x, y, 1, TFT_GOLD); // Draw a small dot at the calculated position
-    }
-  }
-}
-
-void displayMapWithMultiPassesOLD()
-{
-  const int timeStep = 15; // Time step for plotting points
-  int startX;
-  int currentXpos;
-  int currentYpos;
-
-  tft.fillScreen(TFT_BLACK);
-  displayEquirectangularWorlsMap();
-
-  // Get the starting position
-  sat.findsat(unixtime);
-  float startLon = sat.satLon;
-  startX = map(startLon, -180, 180, 0, 480); // Calculate the starting x position based on longitude
-  currentXpos = startX;
-  currentYpos = map(sat.satLat, 90, -90, 0, 242);
-
-  tft.fillCircle(currentXpos, currentYpos + 40, 5, TFT_YELLOW); // Mark starting point
-  tft.drawCircle(currentXpos, currentYpos + 40, 6, TFT_RED);
-  tft.drawCircle(currentXpos, currentYpos + 40, 7, TFT_RED);
-
-  // Call the drawFootprint function
-  // drawFootprint(currentXpos, currentYpos, sat.satAlt, sat.satLat, sat.satLon);
-
-  float earthRadius = 6371.0; // Earth's radius in kilometers
-  float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + sat.satAlt));
-
-  // Debug: Print calculated footprint radius in km
-  Serial.print("Footprint radius (km): ");
-  Serial.println(footprintRadiusKm);
-
-  // Latitude and Longitude to Map Pixel Scaling (same as displayMapWithMultiPasses)
-  const int mapWidth = 420;                     // Actual width of the map
-  const int mapHeight = 242;                    // Actual height of the map
-  float pixelsPerDegreeLat = mapHeight / 180.0; // 242 pixels for 180 degrees latitude (-90 to +90)
-  float pixelsPerDegreeLon = mapWidth / 360.0;  // 420 pixels for 360 degrees longitude (-180 to +180)
-
-  // Draw the footprint as an ellipse
-  for (int angle = 0; angle < 360; angle++)
-  {
-    float rad = angle * DEG_TO_RAD; // Convert to radians
-
-    // Calculate latitude and longitude for each point on the footprint
-    float deltaLat = footprintRadiusKm * cos(rad) / 111.0;                                  // 1 degree of latitude = 111 km
-    float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(sat.satAlt * DEG_TO_RAD)); // Adjust for Earth's curvature
-
-    float footprintLat = sat.satAlt + deltaLat; // Latitude of the footprint point
-    float footprintLon = sat.satLon + deltaLon; // Longitude of the footprint point
-
-    // Convert latitude and longitude to map coordinates
-    int x = map(footprintLon, -180, 180, 0, mapWidth);     // Longitude to x (0 to 420)
-    int y = map(footprintLat, 90, -90, 0, mapHeight) + 40; // Latitude to y (0 to 242) + banner offset
-    Serial.print(x);
-    Serial.print("   ");
-    Serial.println(y);
-    // Bounds check
-    if (x >= 0 && x < mapWidth && y >= 40 && y < mapHeight + 40)
-    {
-      tft.fillCircle(x, y, 1, TFT_GOLD); // Draw a small dot at the calculated position
-    }
-  }
-
-  // draw 3 orbits
-  unsigned long t = unixtime;
-  bool hasLeftStartX = false;
-  int passageCount = 0; // Track the number of passages across startX
-
-  // Plot points until three passages are completed
-  while (passageCount < 3)
-  {
-    sat.findsat(t);
-    float lat = sat.satLat;
-    float lon = sat.satLon;
-
-    // Convert latitude and longitude to map coordinates
-    int x = map(lon, -180, 180, 0, 480); // Longitude to x (0 to 480)
-    int y = map(lat, 90, -90, 0, 242);   // Latitude to y (0 to 242)
-    y = y + 40;                          // to bypass black banner on top
-    // Choose color based on passage count
-    uint16_t color;
-    if (passageCount == 0)
-      color = TFT_GREEN; // First segment
-    else if (passageCount == 1)
-      color = TFT_YELLOW; // Second segment
-    else
-      color = TFT_RED; // Third segment
-
-    tft.fillCircle(x, y, 1, color); // Draw a 1-pixel filled dot
-
-    // Check if the satellite has moved away from the starting x-coordinate
-    if (!hasLeftStartX && abs(x - startX) > 20) // Moved far enough away
-    {
-      hasLeftStartX = true;
-    }
-
-    // Check if the satellite has returned close to the starting x-coordinate after leaving it
-    if (hasLeftStartX && abs(x - startX) < 5) // Adjust tolerance as needed
-    {
-      passageCount++;        // Increment passage count
-      hasLeftStartX = false; // Reset for next passage
-    }
-
-    // Increment time
-    t += timeStep;
-  }
-}
-
-
-void displayMapWithMultiPassesNEW()
+void displayMapWithMultiPasses()
 {
   // Constants for map scaling and placement
-  const int mapWidth = 480;                     // Width of the map
-  const int mapHeight = 242;                    // Height of the map
-  const int mapOffsetY = 40;                    // Y-offset for the map (black banner)
-  const int timeStep = 15;                      // Time step for plotting points
+  const int mapWidth = 480;  // Width of the map
+  const int mapHeight = 242; // Height of the map
+  const int mapOffsetY = 40; // Y-offset for the map (black banner)
+  const int timeStep = 15;   // Time step for plotting points
 
   // Clear the screen and display the map image
   tft.fillScreen(TFT_BLACK);
@@ -2326,9 +1948,9 @@ void displayMapWithMultiPassesNEW()
 
   // STEP 1: Get satellite position and draw the footprint
   sat.findsat(unixtime);
-  float startLat = sat.satLat;   // Satellite latitude
-  float startLon = sat.satLon;   // Satellite longitude
-  float satAlt = sat.satAlt;     // Satellite altitude
+  float startLat = sat.satLat; // Satellite latitude
+  float startLon = sat.satLon; // Satellite longitude
+  float satAlt = sat.satAlt;   // Satellite altitude
 
   // Calculate footprint radius in kilometers
   float earthRadius = 6371.0; // Earth's radius in kilometers
@@ -2344,18 +1966,20 @@ void displayMapWithMultiPassesNEW()
     float rad = angle * DEG_TO_RAD; // Convert angle to radians
 
     // Calculate latitude and longitude for each point on the footprint
-    float deltaLat = footprintRadiusKm * cos(rad) / 111.0;  // Latitude adjustment (1° ≈ 111 km)
+    float deltaLat = footprintRadiusKm * cos(rad) / 111.0;                                // Latitude adjustment (1° ≈ 111 km)
     float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(startLat * DEG_TO_RAD)); // Longitude adjustment
 
     float footprintLat = startLat + deltaLat; // New latitude for the footprint point
     float footprintLon = startLon + deltaLon; // New longitude for the footprint point
 
     // Longitude wrapping to keep within -180° to 180°
-    if (footprintLon > 180.0) footprintLon -= 360.0;
-    if (footprintLon < -180.0) footprintLon += 360.0;
+    if (footprintLon > 180.0)
+      footprintLon -= 360.0;
+    if (footprintLon < -180.0)
+      footprintLon += 360.0;
 
     // Map latitude and longitude to screen coordinates
-    int x = map(footprintLon, -180, 180, 0, mapWidth); // Longitude to X
+    int x = map(footprintLon, -180, 180, 0, mapWidth);             // Longitude to X
     int y = map(footprintLat, 90, -90, 0, mapHeight) + mapOffsetY; // Latitude to Y with offset
 
     // Draw footprint point if within screen bounds
@@ -2366,13 +1990,13 @@ void displayMapWithMultiPassesNEW()
   }
 
   // STEP 2: Plot the starting position
-  int startX = map(startLon, -180, 180, 0, mapWidth); // Longitude to X-coordinate
+  int startX = map(startLon, -180, 180, 0, mapWidth);             // Longitude to X-coordinate
   int startY = map(startLat, 90, -90, 0, mapHeight) + mapOffsetY; // Latitude to Y-coordinate with offset
 
   // Mark the starting position
-  tft.fillCircle(startX, startY, 5, TFT_YELLOW); // Starting point
-  tft.drawCircle(startX, startY, 6, TFT_RED);
-  tft.drawCircle(startX, startY, 7, TFT_RED);
+  tft.fillCircle(startX, startY, 3, TFT_YELLOW); // Starting point
+  tft.drawCircle(startX, startY, 4, TFT_RED);
+  tft.drawCircle(startX, startY, 5, TFT_RED);
 
   // Debug: Print starting position
   Serial.print("Starting Point (X, Y): ");
@@ -2392,11 +2016,12 @@ void displayMapWithMultiPassesNEW()
     float lon = sat.satLon;
 
     // Map latitude and longitude to screen coordinates
-    int x = map(lon, -180, 180, 0, mapWidth); // Longitude to X
+    int x = map(lon, -180, 180, 0, mapWidth);             // Longitude to X
     int y = map(lat, 90, -90, 0, mapHeight) + mapOffsetY; // Latitude to Y with offset
 
     // Choose color based on passage count
-    uint16_t color = (passageCount == 0) ? TFT_GREEN : (passageCount == 1) ? TFT_YELLOW : TFT_RED;
+    uint16_t color = (passageCount == 0) ? TFT_GREEN : (passageCount == 1) ? TFT_YELLOW
+                                                                           : TFT_RED;
 
     // Draw the satellite's path
     tft.fillCircle(x, y, 1, color);
@@ -2417,228 +2042,6 @@ void displayMapWithMultiPassesNEW()
     t += timeStep; // Increment time step
   }
 }
-
-
-TFT_eSprite sprite = TFT_eSprite(&tft); // Create a sprite linked to the display
-
-
-
-void updateSubPointAndFootprint()
-{
-  sprite.fillSprite(TFT_BLACK); // Clear the sprite (debugging: use solid color for visibility)
-
-  // Get current satellite position
-  sat.findsat(unixtime);
-  float satLat = sat.satLat;
-  float satLon = sat.satLon;
-  float satAlt = sat.satAlt;
-
-  // Debug: Print satellite position
-  Serial.print("Satellite Lat, Lon, Alt: ");
-  Serial.print(satLat);
-  Serial.print(", ");
-  Serial.print(satLon);
-  Serial.print(", ");
-  Serial.println(satAlt);
-
-  // Map satellite sub-point
-  int subX = map(satLon, -180, 180, 0, 480); // Longitude to X
-  int subY = map(satLat, 90, -90, 0, 242) + 40; // Latitude to Y with offset
-
-  // Debug: Print sub-point coordinates
-  Serial.print("Sub-point (X, Y): ");
-  Serial.print(subX);
-  Serial.print(", ");
-  Serial.println(subY);
-
-  // Draw satellite sub-point
-  sprite.fillCircle(subX, subY - 40, 5, TFT_BLUE); // Adjust Y for offset
-
-  // Calculate footprint radius in kilometers
-  float earthRadius = 6371.0; // Earth's radius in kilometers
-  float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + satAlt));
-
-  // Debug: Print footprint radius
-  Serial.print("Footprint radius (km): ");
-  Serial.println(footprintRadiusKm);
-
-  // Draw the footprint
-  for (int angle = 0; angle < 360; angle++)
-{
-    float rad = angle * DEG_TO_RAD;
-
-    // Calculate footprint latitude and longitude
-    float deltaLat = footprintRadiusKm * cos(rad) / 111.0;  // Latitude adjustment
-    float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(satLat * DEG_TO_RAD)); // Longitude adjustment
-
-    float footprintLat = satLat + deltaLat; // Latitude of footprint point
-    float footprintLon = satLon + deltaLon; // Longitude of footprint point
-
-    // Longitude wrapping
-    if (footprintLon > 180.0) footprintLon -= 360.0;
-    if (footprintLon < -180.0) footprintLon += 360.0;
-
-    // Debug: Print footprint latitude and longitude
-    Serial.print("Angle: ");
-    Serial.print(angle);
-    Serial.print("  FootprintLat: ");
-    Serial.print(footprintLat);
-    Serial.print("  FootprintLon: ");
-    Serial.println(footprintLon);
-
-    // Map latitude and longitude to screen coordinates
-    int x = map(footprintLon, -180, 180, 0, 480); // Longitude to X
-    int y = map(footprintLat, 90, -90, 0, 242) + 40; // Latitude to Y with offset
-
-    // Debug: Print mapped screen coordinates
-    Serial.print("Mapped X: ");
-    Serial.print(x);
-    Serial.print("  Mapped Y: ");
-    Serial.println(y);
-
-    // Draw the footprint point
-    if (x >= 0 && x < 480 && y >= 40 && y < 282)
-    {
-        sprite.fillCircle(x, y - 40, 1, TFT_GOLD); // Adjust Y for offset
-    }
-}
-
-
-
-  // Push the sprite to the screen
-  Serial.println("Pushing sprite to the screen...");
-  sprite.pushSprite(0, 0);
-}
-
-
-void displayMapWithMultiPasses()
-{
-    const int timeStep = 15; // Time step for plotting points
-    int startX;
-    int currentXpos;
-    int currentYpos;
-
-    tft.fillScreen(TFT_BLACK);
-    displayEquirectangularWorlsMap();
-
-    // Sprite creation
-    sprite.setColorDepth(8);
-    if (sprite.createSprite(480, 242) == nullptr)
-    {
-        Serial.println("Failed to create sprite!");
-        return;
-    }
-    sprite.fillSprite(TFT_TRANSPARENT);
-
-    // Get the starting position
-    sat.findsat(unixtime);
-    float startLon = sat.satLon;
-    startX = map(startLon, -180, 180, 0, 480);
-    currentXpos = startX;
-    currentYpos = map(sat.satLat, 90, -90, 0, 242);
-
-    // Draw the starting point
-    tft.fillCircle(currentXpos, currentYpos + 40, 5, TFT_YELLOW); // Mark starting point
-    tft.drawCircle(currentXpos, currentYpos + 40, 6, TFT_RED);
-    tft.drawCircle(currentXpos, currentYpos + 40, 7, TFT_RED);
-
-    // Footprint calculations
-    float earthRadius = 6371.0; // Earth's radius in kilometers
-    float footprintRadiusKm = earthRadius * acos(earthRadius / (earthRadius + sat.satAlt));
-
-    Serial.print("Footprint radius (km): ");
-    Serial.println(footprintRadiusKm);
-
-    for (int angle = 0; angle < 360; angle++)
-    {
-        float rad = angle * DEG_TO_RAD;
-
-        // Calculate footprint latitude and longitude
-        float deltaLat = footprintRadiusKm * cos(rad) / 111.0;
-        float deltaLon = footprintRadiusKm * sin(rad) / (111.0 * cos(sat.satLat * DEG_TO_RAD));
-
-        float footprintLat = sat.satLat + deltaLat;
-        float footprintLon = sat.satLon + deltaLon;
-
-        // Longitude wrapping
-        if (footprintLon > 180.0) footprintLon -= 360.0;
-        if (footprintLon < -180.0) footprintLon += 360.0;
-
-        // Debug footprint lat/lon
-        Serial.print("Angle: ");
-        Serial.print(angle);
-        Serial.print("  FootprintLat: ");
-        Serial.print(footprintLat);
-        Serial.print("  FootprintLon: ");
-        Serial.println(footprintLon);
-
-        // Map latitude and longitude to screen coordinates
-        int x = map(footprintLon, -180, 180, 0, 480);
-        int y = map(footprintLat, 90, -90, 0, 242);
-
-        // Debug mapped coordinates
-        Serial.print("Mapped X: ");
-        Serial.print(x);
-        Serial.print("  Mapped Y: ");
-        Serial.println(y);
-
-        // Draw the footprint point
-        if (x >= 0 && x < 480 && y >= 0 && y < 242)
-        {
-            sprite.fillCircle(x, y, 2, TFT_RED); // Larger dots for visibility
-        }
-    }
-
-    // Push sprite
-    sprite.pushSprite(0, 40);
-    sprite.deleteSprite();
-
-    // Draw the 3 passes
-    unsigned long t = unixtime;
-    bool hasLeftStartX = false;
-    int passageCount = 0;
-
-    while (passageCount < 3)
-    {
-        sat.findsat(t);
-        float lat = sat.satLat;
-        float lon = sat.satLon;
-
-        int x = map(lon, -180, 180, 0, 480);
-        int y = map(lat, 90, -90, 0, 242) + 40;
-
-        uint16_t color;
-        if (passageCount == 0) color = TFT_GREEN;
-        else if (passageCount == 1) color = TFT_YELLOW;
-        else color = TFT_RED;
-
-        tft.fillCircle(x, y, 1, color);
-
-        if (!hasLeftStartX && abs(x - startX) > 20)
-        {
-            hasLeftStartX = true;
-        }
-
-        if (hasLeftStartX && abs(x - startX) < 5)
-        {
-            passageCount++;
-            hasLeftStartX = false;
-        }
-
-        t += timeStep;
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
 
 void displayTableNext10Passes()
 {
@@ -2682,7 +2085,7 @@ void displayTableNext10Passes()
     bool passFound = sat.nextpass(&overpass, 100);
     if (passFound)
     {
-      // Prepare persistent `struct tm` objects for AOS, TCA, and LOS
+      // Prepare persistent struct tm objects for AOS, TCA, and LOS
       struct tm aosTm = {0}, tcaTm = {0}, losTm = {0};
 
       // Convert AOS: Acquisition of Signal
@@ -3230,32 +2633,40 @@ void displayOrbitNumber(int number, int x, int y, uint16_t color, bool refresh)
   }
   Serial.println();
 }
-
 void setup()
 {
   // clearPreferences();// uncomment for testing
   Serial.begin(115200);
-  pinMode(TFT_BLP, OUTPUT);
+  pinMode(TFT_BLP, OUTPUT); // needs a transistor
   digitalWrite(TFT_BLP, HIGH);
-
   initializeTFT();
-  // displayBlueMapimage(); Alternative Mapd
-
-  displayISSimage(1000);
-  printWelcomeMessage();
+  // displayBlueMapimage(); Alternative Map
   int pause = 0;
-  connectToWiFi();
-  delay(pause);
-  getTimezoneData();
-  delay(pause);
-  syncTimeFromNTP();
-  delay(pause);
+  tft.fillScreen(TFT_BLACK); // Clears the screen to black
 
-  getTLEelementsMain(tleLine1, tleLine2);
+  displayWelcomeMessage();
+
+  connectToWiFi();
+  getTimezoneData();
+  syncTimeFromNTP();
+
+  // Fetch TLE data during setup
+  if (refreshTLEelements(true))
+  {
+    Serial.println("TLE refresh during setup completed.");
+  }
+  else
+  {
+    Serial.println("TLE refresh during setup failed or no update needed.");
+  }
+
+  getTLEelements(tleLine1, tleLine2, true);
 
   sat.init("ISS (ZARYA)", tleLine1, tleLine2);
   sat.site(OBSERVER_LATITUDE, OBSERVER_LONGITUDE, OBSERVER_ALTITUDE);
+  
 
+  displayISSimage(1000);
   displayTableNext10Passes();
 
   delay(pause);
@@ -3263,18 +2674,63 @@ void setup()
   displayPolarPlotPage();
   displayAzElPlotPage();
   displayPExpedition72image();
-  delay(3000);
+  delay(1000);
   displayPatreonimage();
-  delay(3000);
+  delay(1000);
+  tft.fillScreen(TFT_BLACK);
 
-  tft.fillScreen(TFT_BLACK); // clear the screen
-  // tkSecond.attach(1, Second_Tick);
+  displayMainPage();
+  lastTLEUpdate = millis(); // Record the time of the first update
 }
 
 void loop()
 {
+
+  // Check if it's time to update the TLE
+  if (millis() - lastTLEUpdate >= updateInterval)
+  {
+    Serial.println("\nRunning hourly TLE refresh...");
+    if (refreshTLEelements(false))
+    {
+      Serial.println("TLE refresh completed.");
+      Serial.println("TLE refresh completed.");
+      getTLEelements(tleLine1, tleLine2, false);
+
+      sat.init("ISS (ZARYA)", tleLine1, tleLine2);
+    }
+    else
+    {
+      Serial.println("TLE refresh failed or no update needed.");
+    }
+    lastTLEUpdate = millis(); // Update the last refresh time
+  }
+
   // Get the current touch pressure
   touchTFT = tft.getTouchRawZ();
+  // Serial.println(touchCounter);
+
+  // Refresh logic for case 5 (displayMapWithMultiPasses) outside touch handling
+  if (touchCounter == 5)
+  {
+    // Check if 5 seconds (5000 ms) have passed since the last refresh
+    if (millis() - lastRefreshTime >= 30000)
+    {
+      displayMapWithMultiPasses(); // Refresh the display
+      lastRefreshTime = millis();  // Update the last refresh time
+    }
+  }
+  // Refresh logic for case 5 (displayTableNext10Passes) outside touch handling
+  if (touchCounter == 3)
+  {
+    // Check if 5 seconds (5000 ms) have passed since the last refresh
+    if (millis() - lastRefreshTime >= 5000)
+    {
+      tft.fillScreen(TFT_BLACK);
+      refresh = true;
+      touchCounter = 1;
+      lastRefreshTime = millis(); // Update the last refresh time
+    }
+  }
 
   // Check if the touch pressure exceeds the threshold and debounce
   if (touchTFT > 500)
@@ -3321,6 +2777,7 @@ void loop()
         }
         break;
       case 3:
+        lastRefreshTime = millis();
         if (!page3Displayed)
         {
           displayTableNext10Passes(); // Show page 3
@@ -3340,19 +2797,6 @@ void loop()
           displayMapWithMultiPasses(); // Show page 4
           page5Displayed = true;       // Set the flag to prevent re-display
         }
-
-    updateSubPointAndFootprint();
-    Serial.println(" I am here.....");
-delay(1000);
- static unsigned long lastUpdate = 0;
-  if (millis() - lastUpdate >= 1000) // Update every 1 second
-  {
-    Serial.println(" I am here.....");
-    updateSubPointAndFootprint();
-    lastUpdate = millis();
-  }
-
-
         break;
 
       case 6:
@@ -3388,6 +2832,7 @@ delay(1000);
     // Update previous values
     previousDistance = currentDistance;
     previousTime = currentTime;
+
     displayMainPage();
     // Update the last loop time
     lastLoopTime = millis();

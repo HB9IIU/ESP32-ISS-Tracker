@@ -1,0 +1,822 @@
+#include <TFT_eSPI.h>
+#include "Free_Fonts.h" // Include the header file attached to this sketch
+
+TFT_eSPI tft = TFT_eSPI(); // Initialize the TFT object
+void displayLat7(float number, int x, int y, uint16_t color, bool refresh)
+{
+  tft.setTextSize(1);
+  tft.setTextFont(7);
+
+  static char previousOutput[7] = "      ";  // Previous state (6 characters + null terminator)
+  static uint16_t previousColor = TFT_GREEN; // Track the last color used
+  static bool isInitiated = false;           // Track initialization of static elements
+  char output[7] = "      ";                 // Current output (6 characters + null terminator)
+
+  // Format the number with sign and one decimal place (e.g., "+123.4" or "-123.4")
+  char tempBuffer[8];                                        // Temporary buffer to hold the formatted string
+  snprintf(tempBuffer, sizeof(tempBuffer), "%+.1f", number); // Format number
+
+  // Dynamically fill the `output` array from the right
+  int len = strlen(tempBuffer); // Length of the formatted number
+  int startIndex = 6 - len;     // Calculate starting index for right alignment
+  for (int i = 0; i < len; i++)
+  {
+    output[startIndex + i] = tempBuffer[i]; // Copy characters from tempBuffer to output
+  }
+
+  // Positions for characters
+  int xPos[] = {0, 32, 64, 96, 128, 135}; // Adjust character width dynamically
+  for (int i = 0; i < 6; i++)
+    xPos[i] += x;
+
+  // Handle color change or refresh logic
+  if (color != previousColor)
+  {
+    // If the color has changed, trigger a full redraw
+    refresh = true;
+    previousColor = color; // Update the last used color
+  }
+
+  // Handle refresh logic for static elements (decimal point)
+  if (!isInitiated || refresh)
+  {
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString(".", xPos[4], y); // Decimal point is fixed at xPos[4]
+    isInitiated = true;
+  }
+
+  // Update only changed characters or redraw all if refresh is triggered
+  for (int i = 0; i < 6; i++)
+  { // Loop through each character of the formatted number
+    if (output[i] != previousOutput[i] || refresh)
+    {
+      // Print the previous character in black to erase it
+      if (previousOutput[i] != ' ')
+      {
+        tft.setTextColor(TFT_BLACK, TFT_BLACK);
+        tft.drawChar(previousOutput[i], xPos[i], y);
+      }
+
+      // Draw the new character
+      if (output[i] != ' ')
+      {
+        tft.setTextColor(color, TFT_BLACK);
+        tft.drawChar(output[i], xPos[i], y);
+      }
+
+      // Update previous state
+      previousOutput[i] = output[i];
+    }
+  }
+}
+
+
+
+
+void displayDistance(int number, int x, int y, uint16_t color, bool refresh)
+{
+  tft.setTextSize(1);
+  tft.setTextFont(4);
+
+  static char previousOutput[7] = "      ";  // Previous state (6 characters + null terminator) 12'456
+  static uint16_t previousColor = TFT_GREEN; // Track the last color used
+  static bool isInitiated = false;           // Track initialization of static elements
+  char output[7] = "      ";                 // Current output (6 characters + null terminator)
+
+  char tempBuffer[7] = "";    // Temporary buffer for formatted number
+    int len = 0;                // Length of the formatted number
+    int index = 5;              // Start filling from the right (5 characters + null terminator)
+
+    // Format the number with thousands separator
+    while (number > 0 || len == 0) { // Ensure '0' is handled correctly
+        if (len > 0 && len % 3 == 0) {
+            tempBuffer[index--] = '\''; // Insert the separator
+        }
+        tempBuffer[index--] = '0' + (number % 10);
+        number /= 10;
+        len++;
+    }
+
+    // Fill the output buffer with spaces for right alignment
+    for (int i = 0; i <= index; i++) {
+        output[i] = ' ';
+    }
+// Copy the formatted number into the output buffer
+    for (int i = index + 1; i < 6; i++) {
+        output[i] = tempBuffer[i];
+    }
+  
+    output[6] = '\0'; // Ensure null termination
+
+  // Positions for characters
+  int shift=8;
+  int xPos[] = {0, 14, 28, 42-shift, 56-shift, 70-shift};
+ int leftmargin=120;
+
+  for (int i = 0; i < 6; i++)
+    xPos[i] += x+leftmargin;
+
+  // Handle color change or refresh logic
+  if (color != previousColor)
+  {
+    // If the color has changed, trigger a full redraw
+    refresh = true;
+    previousColor = color; // Update the last used color
+  }
+
+  // Handle refresh logic for static elements (decimal point)
+  if (!isInitiated || refresh)
+  {
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString("km", xPos[5]+24, y); 
+    tft.drawString("Distance:", x, y);
+    isInitiated = true;
+  }
+
+  // Update only changed characters or redraw all if refresh is triggered
+  for (int i = 0; i < 6; i++)
+  { // Loop through each character of the formatted number
+  Serial.print(output[i]);
+  Serial.print(" ");
+    if (output[i] != previousOutput[i] || refresh)
+    {
+      // Print the previous character in black to erase it
+      if (previousOutput[i] != ' ')
+      {
+        tft.setTextColor(TFT_BLACK, TFT_BLACK);
+        tft.drawChar(previousOutput[i], xPos[i], y);
+      }
+
+      // Draw the new character
+      if (output[i] != ' ')
+      {
+        tft.setTextColor(color, TFT_BLACK);
+        tft.drawChar(output[i], xPos[i], y);
+      }
+
+      // Update previous state
+      previousOutput[i] = output[i];
+    }
+  }
+  Serial.println();
+}
+void displayAltitude(int number, int x, int y, uint16_t color, bool refresh)
+{
+  tft.setTextSize(1);
+  tft.setTextFont(4);
+
+  static char previousOutput[7] = "      ";  // Previous state (6 characters + null terminator) 12'456
+  static uint16_t previousColor = TFT_GREEN; // Track the last color used
+  static bool isInitiated = false;           // Track initialization of static elements
+  char output[7] = "      ";                 // Current output (6 characters + null terminator)
+
+  char tempBuffer[7] = "";    // Temporary buffer for formatted number
+    int len = 0;                // Length of the formatted number
+    int index = 5;              // Start filling from the right (5 characters + null terminator)
+
+    // Format the number with thousands separator
+    while (number > 0 || len == 0) { // Ensure '0' is handled correctly
+        if (len > 0 && len % 3 == 0) {
+            tempBuffer[index--] = '\''; // Insert the separator
+        }
+        tempBuffer[index--] = '0' + (number % 10);
+        number /= 10;
+        len++;
+    }
+
+    // Fill the output buffer with spaces for right alignment
+    for (int i = 0; i <= index; i++) {
+        output[i] = ' ';
+    }
+// Copy the formatted number into the output buffer
+    for (int i = index + 1; i < 6; i++) {
+        output[i] = tempBuffer[i];
+    }
+  
+    output[6] = '\0'; // Ensure null termination
+
+  // Positions for characters
+  int shift=8;
+  int xPos[] = {0, 14, 28, 42-shift, 56-shift, 70-shift};
+ int leftmargin=120;
+
+  for (int i = 0; i < 6; i++)
+    xPos[i] += x+leftmargin;
+
+  // Handle color change or refresh logic
+  if (color != previousColor)
+  {
+    // If the color has changed, trigger a full redraw
+    refresh = true;
+    previousColor = color; // Update the last used color
+  }
+
+  // Handle refresh logic for static elements (decimal point)
+  if (!isInitiated || refresh)
+  {
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString("km", xPos[5]+24, y); 
+    tft.drawString("Altitude:", x, y);
+    isInitiated = true;
+  }
+
+  // Update only changed characters or redraw all if refresh is triggered
+  for (int i = 0; i < 6; i++)
+  { // Loop through each character of the formatted number
+  Serial.print(output[i]);
+  Serial.print(" ");
+    if (output[i] != previousOutput[i] || refresh)
+    {
+      // Print the previous character in black to erase it
+      if (previousOutput[i] != ' ')
+      {
+        tft.setTextColor(TFT_BLACK, TFT_BLACK);
+        tft.drawChar(previousOutput[i], xPos[i], y);
+      }
+
+      // Draw the new character
+      if (output[i] != ' ')
+      {
+        tft.setTextColor(color, TFT_BLACK);
+        tft.drawChar(output[i], xPos[i], y);
+      }
+
+      // Update previous state
+      previousOutput[i] = output[i];
+    }
+  }
+  Serial.println();
+}
+void displayOrbitNumber(int number, int x, int y, uint16_t color, bool refresh)
+{
+  tft.setTextSize(1);
+  tft.setTextFont(4);
+
+  static char previousOutput[7] = "      ";  // Previous state (6 characters + null terminator) 12'456
+  static uint16_t previousColor = TFT_GREEN; // Track the last color used
+  static bool isInitiated = false;           // Track initialization of static elements
+  char output[7] = "      ";                 // Current output (6 characters + null terminator)
+
+  char tempBuffer[7] = "";    // Temporary buffer for formatted number
+    int len = 0;                // Length of the formatted number
+    int index = 5;              // Start filling from the right (5 characters + null terminator)
+
+    // Format the number with thousands separator
+    while (number > 0 || len == 0) { // Ensure '0' is handled correctly
+        if (len > 0 && len % 3 == 0) {
+            tempBuffer[index--] = '\''; // Insert the separator
+        }
+        tempBuffer[index--] = '0' + (number % 10);
+        number /= 10;
+        len++;
+    }
+
+    // Fill the output buffer with spaces for right alignment
+    for (int i = 0; i <= index; i++) {
+        output[i] = ' ';
+    }
+// Copy the formatted number into the output buffer
+    for (int i = index + 1; i < 6; i++) {
+        output[i] = tempBuffer[i];
+    }
+  
+    output[6] = '\0'; // Ensure null termination
+
+  // Positions for characters
+  int shift=8;
+  int xPos[] = {0, 14, 28, 42-shift, 56-shift, 70-shift};
+ int leftmargin=120;
+
+  for (int i = 0; i < 6; i++)
+    xPos[i] += x+leftmargin;
+
+  // Handle color change or refresh logic
+  if (color != previousColor)
+  {
+    // If the color has changed, trigger a full redraw
+    refresh = true;
+    previousColor = color; // Update the last used color
+  }
+
+  // Handle refresh logic for static elements (decimal point)
+  if (!isInitiated || refresh)
+  {
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString("Orbit #:", x, y);
+    isInitiated = true;
+  }
+
+  // Update only changed characters or redraw all if refresh is triggered
+  for (int i = 0; i < 6; i++)
+  { // Loop through each character of the formatted number
+  Serial.print(output[i]);
+  Serial.print(" ");
+    if (output[i] != previousOutput[i] || refresh)
+    {
+      // Print the previous character in black to erase it
+      if (previousOutput[i] != ' ')
+      {
+        tft.setTextColor(TFT_BLACK, TFT_BLACK);
+        tft.drawChar(previousOutput[i], xPos[i], y);
+      }
+
+      // Draw the new character
+      if (output[i] != ' ')
+      {
+        tft.setTextColor(color, TFT_BLACK);
+        tft.drawChar(output[i], xPos[i], y);
+      }
+
+      // Update previous state
+      previousOutput[i] = output[i];
+    }
+  }
+  Serial.println();
+}
+
+
+
+
+void displayLat4(float number, int x, int y, uint16_t color, bool refresh)
+{
+  tft.setTextSize(1);
+  tft.setTextFont(4);
+
+  static char previousOutput[7] = "      ";  // Previous state (6 characters + null terminator)
+  static uint16_t previousColor = TFT_GREEN; // Track the last color used
+  static bool isInitiated = false;           // Track initialization of static elements
+  char output[7] = "      ";                 // Current output (6 characters + null terminator)
+
+  // Format the number with sign and one decimal place (e.g., "+123.4" or "-123.4")
+  char tempBuffer[8];                                        // Temporary buffer to hold the formatted string
+  snprintf(tempBuffer, sizeof(tempBuffer), "%+.1f", number); // Format number
+
+  // Dynamically fill the `output` array from the right
+  int len = strlen(tempBuffer); // Length of the formatted number
+  int startIndex = 6 - len;     // Calculate starting index for right alignment
+  for (int i = 0; i < len; i++)
+  {
+    output[startIndex + i] = tempBuffer[i]; // Copy characters from tempBuffer to output
+  }
+
+  // Positions for characters
+  int xPos[] = {0, 14, 28, 42, 56, 63};
+
+  for (int i = 0; i < 6; i++)
+    xPos[i] += x;
+
+  // Handle color change or refresh logic
+  if (color != previousColor)
+  {
+    // If the color has changed, trigger a full redraw
+    refresh = true;
+    previousColor = color; // Update the last used color
+  }
+
+  // Handle refresh logic for static elements (decimal point)
+  if (!isInitiated || refresh)
+  {
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString(".", xPos[4], y); // Decimal point is fixed at xPos[4]
+    isInitiated = true;
+  }
+
+  // Update only changed characters or redraw all if refresh is triggered
+  for (int i = 0; i < 6; i++)
+  { // Loop through each character of the formatted number
+    if (output[i] != previousOutput[i] || refresh)
+    {
+      // Print the previous character in black to erase it
+      if (previousOutput[i] != ' ')
+      {
+        tft.setTextColor(TFT_BLACK, TFT_BLACK);
+        tft.drawChar(previousOutput[i], xPos[i], y);
+      }
+
+      // Draw the new character
+      if (output[i] != ' ')
+      {
+        tft.setTextColor(color, TFT_BLACK);
+        tft.drawChar(output[i], xPos[i], y);
+      }
+
+      // Update previous state
+      previousOutput[i] = output[i];
+    }
+  }
+}
+
+
+
+void displayLat4WithUnit(float number, int x, int y, uint16_t color, bool refresh)
+{
+  tft.setTextSize(1);
+  tft.setTextFont(4);
+
+  static char previousOutput[7] = "      ";  // Previous state (6 characters + null terminator)
+  static uint16_t previousColor = TFT_GREEN; // Track the last color used
+  static bool isInitiated = false;           // Track initialization of static elements
+  char output[7] = "      ";                 // Current output (6 characters + null terminator)
+
+  // Format the number with sign and one decimal place (e.g., "+123.4" or "-123.4")
+  char tempBuffer[8];                                        // Temporary buffer to hold the formatted string
+  snprintf(tempBuffer, sizeof(tempBuffer), "%+.1f", number); // Format number
+
+  // Dynamically fill the `output` array from the right
+  int len = strlen(tempBuffer); // Length of the formatted number
+  int startIndex = 6 - len;     // Calculate starting index for right alignment
+  for (int i = 0; i < len; i++)
+  {
+    output[startIndex + i] = tempBuffer[i]; // Copy characters from tempBuffer to output
+  }
+
+  // Positions for characters
+  int xPos[] = {0, 14, 28, 42, 56, 63};
+
+  for (int i = 0; i < 6; i++)
+    xPos[i] += x;
+
+  // Handle color change or refresh logic
+  if (color != previousColor)
+  {
+    // If the color has changed, trigger a full redraw
+    refresh = true;
+    previousColor = color; // Update the last used color
+  }
+
+  // Handle refresh logic for static elements (decimal point)
+  if (!isInitiated || refresh)
+  {
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString(".", xPos[4], y);         // Decimal point is fixed at xPos[4]
+    tft.drawString("deg.", xPos[5] + 20, y); // Unit
+
+    isInitiated = true;
+  }
+
+  // Update only changed characters or redraw all if refresh is triggered
+  for (int i = 0; i < 6; i++)
+  { // Loop through each character of the formatted number
+    if (output[i] != previousOutput[i] || refresh)
+    {
+      // Print the previous character in black to erase it
+      if (previousOutput[i] != ' ')
+      {
+        tft.setTextColor(TFT_BLACK, TFT_BLACK);
+        tft.drawChar(previousOutput[i], xPos[i], y);
+      }
+
+      // Draw the new character
+      if (output[i] != ' ')
+      {
+        tft.setTextColor(color, TFT_BLACK);
+        tft.drawChar(output[i], xPos[i], y);
+      }
+
+      // Update previous state
+      previousOutput[i] = output[i];
+    }
+  }
+}
+
+void displayLat7WithDegSign(float number, int x, int y, uint16_t color, bool refresh)
+{
+  tft.setTextSize(1);
+  tft.setTextFont(7);
+
+  static char previousOutput[7] = "      ";  // Previous state (6 characters + null terminator)
+  static uint16_t previousColor = TFT_GREEN; // Track the last color used
+  static bool isInitiated = false;           // Track initialization of static elements
+  char output[7] = "      ";                 // Current output (6 characters + null terminator)
+
+  // Format the number with sign and one decimal place (e.g., "+123.4" or "-123.4")
+  char tempBuffer[8];                                        // Temporary buffer to hold the formatted string
+  snprintf(tempBuffer, sizeof(tempBuffer), "%+.1f", number); // Format number
+
+  // Dynamically fill the `output` array from the right
+  int len = strlen(tempBuffer); // Length of the formatted number
+  int startIndex = 6 - len;     // Calculate starting index for right alignment
+  for (int i = 0; i < len; i++)
+  {
+    output[startIndex + i] = tempBuffer[i]; // Copy characters from tempBuffer to output
+  }
+
+  // Positions for characters
+  int xPos[] = {0, 32, 64, 96, 128, 135}; // Adjust character width dynamically
+  for (int i = 0; i < 6; i++)
+    xPos[i] += x;
+
+  // Handle color change or refresh logic
+  if (color != previousColor)
+  {
+    // If the color has changed, trigger a full redraw
+    refresh = true;
+    previousColor = color; // Update the last used color
+  }
+
+  // Handle refresh logic for static elements (decimal point)
+  if (!isInitiated || refresh)
+  {
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString(".", xPos[4], y); // Decimal point is fixed at xPos[4]
+    tft.setFreeFont(&FreeMonoBold12pt7b);
+    tft.drawString("o", xPos[4] + 40, y - 6); // Decimal point is fixed at xPos[4]
+    tft.setTextFont(7);
+
+    isInitiated = true;
+  }
+
+  // Update only changed characters or redraw all if refresh is triggered
+  for (int i = 0; i < 6; i++)
+  { // Loop through each character of the formatted number
+    if (output[i] != previousOutput[i] || refresh)
+    {
+      // Print the previous character in black to erase it
+      if (previousOutput[i] != ' ')
+      {
+        tft.setTextColor(TFT_BLACK, TFT_BLACK);
+        tft.drawChar(previousOutput[i], xPos[i], y);
+      }
+
+      // Draw the new character
+      if (output[i] != ' ')
+      {
+        tft.setTextColor(color, TFT_BLACK);
+        tft.drawChar(output[i], xPos[i], y);
+      }
+
+      // Update previous state
+      previousOutput[i] = output[i];
+    }
+  }
+}
+
+void displayAzimuth(float number, int x, int y, uint16_t color, bool refresh)
+{
+  tft.setTextSize(1);
+  tft.setTextFont(7);
+
+  static char previousOutput[6] = "     ";   // Previous state (5 characters + null terminator) 999.9
+  static uint16_t previousColor = TFT_GREEN; // Track the last color used
+  static bool isInitiated = false;           // Track initialization of static elements
+  char output[6] = "     ";                  // Current output (5 characters + null terminator) 999.9
+
+  // Format the number with sign and one decimal place (e.g., "+123.4" or "-123.4")
+  char tempBuffer[7];                                       // Temporary buffer to hold the formatted string
+  snprintf(tempBuffer, sizeof(tempBuffer), "%.1f", number); // Format number without the sign
+
+  // Dynamically fill the `output` array from the right
+  int len = strlen(tempBuffer); // Length of the formatted number
+  int startIndex = 5 - len;     // Calculate starting index for right alignment
+  for (int i = 0; i < len; i++)
+  {
+    output[startIndex + i] = tempBuffer[i]; // Copy characters from tempBuffer to output
+  }
+
+  // Positions for characters
+  int xPos[] = {0, 32, 64, 96, 128, 135}; // Adjust character width dynamically
+  for (int i = 0; i < 6; i++)
+    xPos[i] += x;
+
+  // Handle color change or refresh logic
+  if (color != previousColor)
+  {
+    // If the color has changed, trigger a full redraw
+    refresh = true;
+    previousColor = color; // Update the last used color
+  }
+
+  // Handle refresh logic for static elements (decimal point)
+  if (!isInitiated || refresh)
+  {
+
+    // Margins around the text
+    int horiMargin = 6;
+    int topMargin = 14;
+    int bottomMargin = 18;
+    // Calculate text dimensions
+    int textLength = xPos[5] - x + tft.textWidth("8") + 14;
+    ;
+    // Total width and height of the rectangle
+    int rectWidth = textLength + 2 * horiMargin;
+    int rectHeight = tft.fontHeight() + topMargin + bottomMargin;
+    // X and Y positions for the rectangle
+    int rectX = xPos[0] - horiMargin;
+    int rectY = y - topMargin;
+    // Draw the rectangle with rounded corners
+    tft.drawRoundRect(rectX, rectY, rectWidth, rectHeight, 10, TFT_LIGHTGREY);
+    // Draw Azimuth label
+    tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+    tft.setFreeFont(&FreeSans12pt7b);
+    tft.drawString("Azimuth", rectX + rectWidth / 2 - tft.textWidth("Azimuth") / 2, rectY + rectHeight - 12); // Decimal point is fixed at xPos[4]
+
+    tft.setTextFont(7);
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString(".", xPos[4], y); // Decimal point is fixed at xPos[4]
+    tft.setFreeFont(&FreeMonoBold12pt7b);
+    tft.drawString("o", xPos[4] + 40, y - 5); // Decimal point is fixed at xPos[4]
+    tft.setTextFont(7);
+
+    isInitiated = true;
+  }
+
+  // Update only changed characters or redraw all if refresh is triggered
+  for (int i = 0; i < 6; i++)
+  { // Loop through each character of the formatted number
+    if (output[i] != previousOutput[i] || refresh)
+    {
+      // Print the previous character in black to erase it
+      if (previousOutput[i] != ' ')
+      {
+        tft.setTextColor(TFT_BLACK, TFT_BLACK);
+        tft.drawChar(previousOutput[i], xPos[i], y);
+      }
+
+      // Draw the new character
+      if (output[i] != ' ')
+      {
+        tft.setTextColor(color, TFT_BLACK);
+        tft.drawChar(output[i], xPos[i], y);
+      }
+
+      // Update previous state
+      previousOutput[i] = output[i];
+    }
+  }
+}
+
+void displayElevation(float number, int x, int y, uint16_t color, bool refresh)
+{
+  tft.setTextSize(1);
+  tft.setTextFont(7);
+
+  static char previousOutput[6] = "     ";   // Previous state (5 characters + null terminator) 999.9
+  static uint16_t previousColor = TFT_GREEN; // Track the last color used
+  static bool isInitiated = false;           // Track initialization of static elements
+  char output[6] = "     ";                  // Current output (5 characters + null terminator) 999.9
+
+  // Format the number with sign and one decimal place (e.g., "+123.4" or "-123.4")
+  char tempBuffer[7];                                       // Temporary buffer to hold the formatted string
+  snprintf(tempBuffer, sizeof(tempBuffer), "%.1f", number); // Format number without the sign
+
+  // Dynamically fill the `output` array from the right
+  int len = strlen(tempBuffer); // Length of the formatted number
+  int startIndex = 5 - len;     // Calculate starting index for right alignment
+  for (int i = 0; i < len; i++)
+  {
+    output[startIndex + i] = tempBuffer[i]; // Copy characters from tempBuffer to output
+  }
+
+  // Positions for characters
+  int xPos[] = {0, 32, 64, 96, 128, 135}; // Adjust character width dynamically
+  for (int i = 0; i < 6; i++)
+    xPos[i] += x;
+
+  // Handle color change or refresh logic
+  if (color != previousColor)
+  {
+    // If the color has changed, trigger a full redraw
+    refresh = true;
+    previousColor = color; // Update the last used color
+  }
+
+  // Handle refresh logic for static elements (decimal point)
+  if (!isInitiated || refresh)
+  {
+
+    // Margins around the text
+    int horiMargin = 6;
+    int topMargin = 14;
+    int bottomMargin = 18;
+    // Calculate text dimensions
+    int textLength = xPos[5] - x + tft.textWidth("8") + 14;
+    ;
+    // Total width and height of the rectangle
+    int rectWidth = textLength + 2 * horiMargin;
+    int rectHeight = tft.fontHeight() + topMargin + bottomMargin;
+    // X and Y positions for the rectangle
+    int rectX = xPos[0] - horiMargin;
+    int rectY = y - topMargin;
+    // Draw the rectangle with rounded corners
+    tft.drawRoundRect(rectX, rectY, rectWidth, rectHeight, 10, TFT_LIGHTGREY);
+    // Draw Elevation label
+    tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+    tft.setFreeFont(&FreeSans12pt7b);
+    tft.drawString("Elevation", rectX + rectWidth / 2 - tft.textWidth("Elevation") / 2, rectY + rectHeight - 12); // Decimal point is fixed at xPos[4]
+
+    tft.setTextFont(7);
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString(".", xPos[4], y); // Decimal point is fixed at xPos[4]
+    tft.setFreeFont(&FreeMonoBold12pt7b);
+    tft.drawString("o", xPos[4] + 40, y - 5); // Decimal point is fixed at xPos[4]
+    tft.setTextFont(7);
+
+    isInitiated = true;
+  }
+
+  // Update only changed characters or redraw all if refresh is triggered
+  for (int i = 0; i < 6; i++)
+  { // Loop through each character of the formatted number
+    if (output[i] != previousOutput[i] || refresh)
+    {
+      // Print the previous character in black to erase it
+      if (previousOutput[i] != ' ')
+      {
+        tft.setTextColor(TFT_BLACK, TFT_BLACK);
+        tft.drawChar(previousOutput[i], xPos[i], y);
+      }
+
+      // Draw the new character
+      if (output[i] != ' ')
+      {
+        tft.setTextColor(color, TFT_BLACK);
+        tft.drawChar(output[i], xPos[i], y);
+      }
+
+      // Update previous state
+      previousOutput[i] = output[i];
+    }
+  }
+}
+
+
+void setup()
+{
+  Serial.begin(115200);
+  delay(5000);
+
+  tft.init();
+  tft.setRotation(1);
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextSize(1);
+  tft.setTextFont(7);
+}
+
+void loop()
+{
+  // Continuous counter for testing
+  static float counter = -210.1; // Local counter for loop
+    static float counter2 = 20000; // Local counter for loop
+    static float counter3 = 150; // Local counter for loop
+    static float counter4 = 45000; // Local counter for loop
+
+
+
+  uint16_t color;
+
+  // Determine the color based on the number
+  if (counter < 10)
+  {
+    color = TFT_RED;
+  }
+  else if (counter < 50)
+  {
+    color = TFT_YELLOW;
+  }
+  else
+  {
+    color = TFT_GREEN;
+  }
+
+  // Call displayLat7 with the dynamic color
+  displayLat4(counter, 50, 0, TFT_GOLD, false);
+  displayLat4WithUnit(counter, 50, 25, TFT_GREEN, false);
+  displayLat7WithDegSign(counter, 200, 0, TFT_BLUE, false);
+
+  displayAltitude(counter2, 128, 50, TFT_RED, false);
+  displayDistance(counter3, 128, 75, TFT_RED, false);
+  displayOrbitNumber(counter4, 128, 100, TFT_RED, false);
+
+
+
+  displayAzimuth(abs(counter * 2 + 13), 15, 170, color, false);
+  displayElevation(counter, 260, 170, color, false);
+
+
+
+  counter += 0.2;
+ counter2 += 1;
+ counter3 += 13;
+
+  counter4 += 13;
+  if (counter > 99.9)
+  {
+    counter = -99.9; // Reset the counter
+  }
+if (counter2 > 12000)
+  {
+    counter2 = 10000; // Reset the counter
+  }
+if (counter3 > 999)
+  {
+    counter3 = 0; // Reset the counter
+  }
+if (counter4 > 55000)
+  {
+    counter4 = 42000; // Reset the counter
+  }
+
+
+
+  delay(50); // Add a small delay for visibility
+}

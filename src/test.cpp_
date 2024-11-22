@@ -1,0 +1,119 @@
+#include <TFT_eSPI.h>
+#include "worldMap.h" // Image is stored here in an 8-bit array
+#include <PNGdec.h>   // Include the PNG decoder library
+
+TFT_eSPI tft = TFT_eSPI();
+PNG png; // PNG decoder instance
+
+#define MAP_WIDTH 480
+#define MAP_HEIGHT 242
+#define BUFFER_ROWS 20 // Number of rows to buffer (adjust as needed to reduce memory usage)
+
+// Buffer to store only a small number of rows of the map data
+uint16_t mapRowBuffer[MAP_WIDTH * BUFFER_ROWS];
+
+void pngDrawToBuffer(PNGDRAW *pDraw)
+{
+    uint16_t lineBuffer[MAP_WIDTH];
+    png.getLineAsRGB565(pDraw, lineBuffer, PNG_RGB565_BIG_ENDIAN, 0xffffffff);
+
+    for (int x = 0; x < pDraw->iWidth; x++)
+    {
+        // Draw to TFT display
+        tft.drawPixel(x, pDraw->y, lineBuffer[x]);
+
+        // Store the pixel data only if within buffer range
+        if (pDraw->y < BUFFER_ROWS)
+        {
+            mapRowBuffer[pDraw->y * MAP_WIDTH + x] = lineBuffer[x];
+        }
+    }
+}
+
+void displayEquirectangularWorldMap()
+{
+    // https://notisrac.github.io/FileToCArray/
+    int16_t rc = png.openFLASH((uint8_t *)worldMap, sizeof(worldMap), pngDrawToBuffer);
+    if (rc == PNG_SUCCESS)
+    {
+        Serial.println("Successfully opened png file");
+        Serial.printf("image specs: (%d x %d), %d bpp, pixel type: %d\n", png.getWidth(), png.getHeight(), png.getBpp(), png.getPixelType());
+        tft.startWrite();
+        uint32_t dt = millis();
+        rc = png.decode(NULL, 0);
+        Serial.print(millis() - dt);
+        Serial.println("ms");
+        tft.endWrite();
+    }
+}
+
+void eraseCircle(int x, int y, int radius)
+{
+    // Erase the circle by redrawing the pixels from the mapRowBuffer
+    for (int dy = -radius; dy <= radius; dy++)
+    {
+        for (int dx = -radius; dx <= radius; dx++)
+        {
+            int distance = sqrt(dx * dx + dy * dy);
+            if (distance <= radius)
+            {
+                int px = x + dx;
+                int py = y + dy;
+
+                // Only redraw from the buffer if it is within the buffered rows
+                if (px >= 0 && px < MAP_WIDTH && py >= 0 && py < BUFFER_ROWS)
+                {
+                    uint16_t color = mapRowBuffer[py * MAP_WIDTH + px];
+                    tft.drawPixel(px, py, color);
+                }
+            }
+        }
+    }
+}
+
+void drawMovingCircle(int x, int y, int radius, uint16_t color)
+{
+    // Draw the new circle
+    tft.fillCircle(x, y, radius, color);
+}
+
+void setup()
+{
+    Serial.begin(115200);
+    tft.init();
+    tft.setRotation(1);
+    tft.fillScreen(TFT_BLACK); // Clears the screen to black
+    displayEquirectangularWorldMap();
+}
+
+void loop()
+{
+    static int x = 50;
+    static int y = 100;
+    static int dx = 5; // Speed of movement along x-axis
+    static int dy = 3; // Speed of movement along y-axis
+    static int radius = 10;
+
+    // Erase the previous circle
+    eraseCircle(x, y, radius);
+
+    // Update the position
+    x += dx;
+    y += dy;
+
+    // Check for collision with map boundaries and bounce
+    if (x - radius < 0 || x + radius >= MAP_WIDTH)
+    {
+        dx = -dx;
+    }
+    if (y - radius < 0 || y + radius >= MAP_HEIGHT)
+    {
+        dy = -dy;
+    }
+
+    // Draw the new circle
+    drawMovingCircle(x, y, radius, TFT_RED);
+
+    // Delay for visibility
+    delay(100);
+}
