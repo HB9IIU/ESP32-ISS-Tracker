@@ -2,8 +2,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 // Version Info
-const char* VERSION_NUMBER = "Beta0";
-const char* VERSION_DATE = "14.11.24";
+const char* VERSION_NUMBER = "Beta 0";
+const char* VERSION_DATE = "01.12.24";
 
 
 // Wi-Fi configuration
@@ -15,11 +15,13 @@ const char* WIFI_SSID_ALT = "NO WIFI FOR YOU!!!";
 const char* WIFI_PASSWORD_ALT  = "Nestle2010Nestle";
 
 // API configuration
+// TimeZoneDB is a free service that provides a comprehensive time zone database for cities worldwide. 
+// get yours here https://timezonedb.com/
 const char* TIMEZONE_API_KEY = "EH7POYI19YHB";
 
 
 // TLE update interval
-const unsigned long TLE_UPDATE_INTERVAL = 24 * 3600; // 8 hours
+bool DEBUG_ON_TFT = true; // provides a bit more time to read messages at start-up 
 
 
 // Observer location

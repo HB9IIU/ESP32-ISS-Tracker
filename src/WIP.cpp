@@ -30,7 +30,7 @@ const char *TLE_LINE1_KEY = "tle_line1";
 const char *TLE_LINE2_KEY = "tle_line2";
 const char *TLE_TIMESTAMP_KEY = "tle_timestamp";
 char TLEageHHMM[6]; // Buffer to store the formatted age (HH:MM)
-
+int waiting = 0;    // for TFT messages at boot
 bool refresh = false;
 unsigned long lastRefreshTime = 0;
 
@@ -90,6 +90,7 @@ int orbitNumber;
 void displayRawNumberRightAligned(int rightEdgeX, int y, int number, int color);
 void displayFormattedNumberRightAligned(int rightEdgeX, int y, int number, int color);
 void displayTimeRightAligned(int rightEdgeX, int y, int seconds, int color);
+String formatTime(unsigned long epochTime, bool isLocal );
 void displayMainPage();
 void initializeTFT()
 {
@@ -137,10 +138,13 @@ void displayWelcomeMessage()
   String title = "Welcome to HB9IIU ISS Life Tracker";
   String version = String("Version: ") + VERSION_NUMBER + " (" + VERSION_DATE + ")";
   String disclaimer = "Please use at your own risk!";
-
-  // TFTprint(title);
-  // TFTprint(version);
-  // TFTprint(disclaimer);
+  TFTprint("       ");
+  TFTprint("       " + title), TFT_GOLD;
+  TFTprint("       ");
+  TFTprint("               " + version, TFT_GOLD);
+  TFTprint("       ");
+  TFTprint("             " + disclaimer, TFT_GOLD);
+  TFTprint("       ");
   int width = max(max(title.length(), version.length()), disclaimer.length()) + 4; // Adjust frame width
 
   // Print top border
@@ -200,7 +204,7 @@ void connectToWiFi()
   int attempt = 0;
   const int maxAttempts = 5; // Maximum number of attempts for each network
   bool connected = false;
-
+  TFTprint("");
   while (!connected)
   {
     if (attempt < maxAttempts)
@@ -216,10 +220,10 @@ void connectToWiFi()
     {
       Serial.print("Connecting to alternative Wi-Fi: ");
       Serial.println(WIFI_SSID_ALT);
-            TFTprint("");
+      TFTprint("");
 
       String message = "Connecting to alternative Wi-Fi: " + String(WIFI_SSID_ALT);
-      TFTprint(message,TFT_YELLOW);
+      TFTprint(message, TFT_YELLOW);
       WiFi.begin(WIFI_SSID_ALT, WIFI_PASSWORD_ALT);
     }
 
@@ -259,6 +263,13 @@ void connectToWiFi()
       }
     }
   }
+
+  // Get Wi-Fi signal strength (RSSI)
+  int32_t rssi = WiFi.RSSI();
+  Serial.print("Signal Strength: ");
+  Serial.print(rssi);
+  Serial.println(" dBm");
+  TFTprint("Signal Strength: " + String(rssi) + " dBm", TFT_GOLD);
 }
 void getTimezoneData()
 {
@@ -341,9 +352,9 @@ void getTimezoneData()
   // If we exit the loop, all retries failed, reboot the ESP32
   Serial.println("Failed to retrieve timezone data after multiple attempts. Rebooting...");
   TFTprint("Failed to retrieve timezone data.", TFT_RED);
-    TFTprint("Check your API key.", TFT_YELLOW);
-    TFTprint("");
-    TFTprint("Rebooting...", TFT_RED);
+  TFTprint("Check your API key.", TFT_YELLOW);
+  TFTprint("");
+  TFTprint("Rebooting...", TFT_RED);
   delay(1500);   // Brief delay to display the message before reboot
   ESP.restart(); // Reboot the ESP32
 }
@@ -351,6 +362,8 @@ void syncTimeFromNTP()
 {
   // List of NTP server IPs with corresponding server names
   Serial.println();
+  TFTprint("       ");
+
   // Print a message indicating the start of the time synchronization process
   Serial.println("Synchronizing time from NTP servers...");
   TFTprint("Synchronizing time from NTP servers...", TFT_YELLOW);
@@ -404,6 +417,7 @@ void syncTimeFromNTP()
         {
           Serial.println("NTP time updated successfully.");
           TFTprint("NTP time updated successfully.", TFT_GREEN);
+          TFTprint(formatTime(unixtime,true),TFT_GREEN);
           timeInitialized = true; // Mark time as initialized
         }
         success = true; // Time sync was successful
@@ -797,6 +811,7 @@ String formatTime(unsigned long epochTime, bool isLocal = false)
   strftime(buffer, 20, "%d.%m.%y @ %H:%M:%S", tmInfo);
   return String(buffer);
 }
+
 
 String formatDate(unsigned long epochTime, bool isLocal = false)
 {
@@ -1335,7 +1350,7 @@ void updateBigClock(bool refresh = false)
     clockWidth = tft.textWidth(sampleTime.c_str());
     clockXPosition = (tft.width() - clockWidth) / 2; // Center x position for the clock
     isPositionCalculated = true;                     // Mark as calculated
-    previousTime="";
+    previousTime = "";
   }
 
   // Get current UTC time in seconds
@@ -1781,6 +1796,7 @@ void displayISSimage(int duration)
     Serial.println("ms");
     tft.endWrite();
   }
+  digitalWrite(TFT_BLP, HIGH);
 
   delay(duration);
 }
@@ -2634,23 +2650,31 @@ void displayOrbitNumber(int number, int x, int y, uint16_t color, bool refresh)
   }
   Serial.println();
 }
+
 void setup()
 {
   // clearPreferences();// uncomment for testing
   Serial.begin(115200);
-  pinMode(TFT_BLP, OUTPUT); // needs a transistor
-  digitalWrite(TFT_BLP, HIGH);
+  if (DEBUG_ON_TFT)
+    ;
+
+  waiting = 3000;
   initializeTFT();
   // displayBlueMapimage(); Alternative Map
-  int pause = 0;
-  tft.fillScreen(TFT_BLACK); // Clears the screen to black
-
+  pinMode(TFT_BLP, OUTPUT); // for TFT backlight
+  digitalWrite(TFT_BLP, HIGH);
   displayWelcomeMessage();
 
+  delay(waiting);
   connectToWiFi();
+
+  delay(waiting);
   getTimezoneData();
+
+  delay(waiting);
   syncTimeFromNTP();
 
+  delay(waiting);
   // Fetch TLE data during setup
   if (refreshTLEelements(true))
   {
@@ -2661,16 +2685,17 @@ void setup()
     Serial.println("TLE refresh during setup failed or no update needed.");
   }
 
+  delay(waiting);
   getTLEelements(tleLine1, tleLine2, true);
 
   sat.init("ISS (ZARYA)", tleLine1, tleLine2);
   sat.site(OBSERVER_LATITUDE, OBSERVER_LONGITUDE, OBSERVER_ALTITUDE);
-  
 
+  delay(waiting);
+  digitalWrite(TFT_BLP, LOW);
   displayISSimage(1000);
   displayTableNext10Passes();
 
-  delay(pause);
   displayMapWithMultiPasses();
   displayPolarPlotPage();
   displayAzElPlotPage();
