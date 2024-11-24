@@ -21,7 +21,7 @@ const char* TIMEZONE_API_KEY = "EH7POYI19YHB";
 
 
 // TLE update interval
-bool DEBUG_ON_TFT = true; // provides a bit more time to read messages at start-up 
+bool DEBUG_ON_TFT = false; // provides a bit more time to read messages at start-up 
 
 
 // Observer location

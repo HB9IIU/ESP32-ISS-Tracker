@@ -1,0 +1,39 @@
+#include <TFT_eSPI.h>  // Include the TFT library
+#include <FreeSansOblique20pt7b.h>  // Include the corrected font file
+
+TFT_eSPI tft = TFT_eSPI();  // Create an object of TFT_eSPI
+
+void setup() {
+  tft.begin();  // Initialize TFT
+  tft.setRotation(1);  // Set rotation if needed (0 to 3)
+pinMode(TFT_BLP, OUTPUT); // for TFT backlight
+  digitalWrite(TFT_BLP, HIGH);
+  // Set the custom font
+  tft.setFreeFont(&FreeSansOblique20pt7b);
+
+  // Set text color and background
+  tft.setTextColor(TFT_GOLD, TFT_BLACK);
+
+  // Display "123" on the screen at position (x=50, y=100)
+  tft.setCursor(50, 100);
+  tft.print("7");
+    tft.setCursor(50, 100);
+      tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+
+  tft.print("H");
+  
+tft.print("2");
+tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+    tft.setCursor(50+37, 100);
+
+tft.print("C");
+
+  tft.setCursor(50, 200);
+
+tft.print("0120156109");
+
+}
+
+void loop() {
+  // Nothing needed here for this example
+}
