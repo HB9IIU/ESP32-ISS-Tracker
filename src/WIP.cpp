@@ -30,14 +30,14 @@ const char *TLE_LINE1_KEY = "tle_line1";
 const char *TLE_LINE2_KEY = "tle_line2";
 const char *TLE_TIMESTAMP_KEY = "tle_timestamp";
 char TLEageHHMM[6]; // Buffer to store the formatted age (HH:MM)
-int waiting = 0;    // for TFT messages at boot
+int bootingMessagePause = 0;    // for TFT messages at boot
 bool refresh = false;
 unsigned long lastRefreshTime = 0;
 
 unsigned long lastTLEUpdate = 0;              // Track the last update time
 const unsigned long updateInterval = 3600000; // 1 hour in milliseconds
 // Global variables to store the previous elevation and the flag
-float previousElevation = 0.0;
+float previousElevation =-1;
 bool elevationCrossedZero = false;
 // Flag to track if time was successfully updated at least once
 bool timeInitialized = false;
@@ -1784,6 +1784,8 @@ void pngDraw(PNGDRAW *pDraw)
 
 void displayISSimage(int duration)
 {
+  digitalWrite(TFT_BLP, LOW);
+
   // https://notisrac.github.io/FileToCArray/
   int16_t rc = png.openFLASH((uint8_t *)ISSsplashImage, sizeof(ISSsplashImage), pngDraw);
 
@@ -1798,7 +1800,8 @@ void displayISSimage(int duration)
     Serial.println("ms");
     tft.endWrite();
   }
-  digitalWrite(TFT_BLP, HIGH);
+  
+digitalWrite(TFT_BLP, HIGH);
 
   delay(duration);
 }
@@ -2080,19 +2083,19 @@ void displayTableNext10Passes()
   tft.fillScreen(TFT_BLACK);
   tft.setTextFont(4);
   tft.setTextColor(TFT_GOLD, TFT_BLACK);
-
+int margin=12;
   // Draw headers
-  tft.setCursor(0, 0);
+  tft.setCursor(margin, 0);
   tft.print("DATE");
-  tft.setCursor(85, 0);
+  tft.setCursor(margin+85, 0);
   tft.print("AOS");
-  tft.setCursor(164, 0);
+  tft.setCursor(margin+164, 0);
   tft.print("TCA");
-  tft.setCursor(244, 0);
+  tft.setCursor(margin+244, 0);
   tft.print("LOS");
-  tft.setCursor(324, 0);
+  tft.setCursor(margin+324, 0);
   tft.print("DUR");
-  tft.setCursor(400, 0);
+  tft.setCursor(margin+400, 0);
   tft.print("MEL");
 
   // Adjust timezone and DST offset
@@ -2169,17 +2172,17 @@ void displayTableNext10Passes()
 
       // TFT output: Display pass information on screen
       int yPosition = i * 23 + 5; // Adjust vertical spacing for each row
-      tft.setCursor(0, yPosition);
+      tft.setCursor(margin, yPosition);
       tft.printf("%s", passDate);
-      tft.setCursor(80, yPosition);
+      tft.setCursor(margin+80, yPosition);
       tft.printf("%s", aosTime);
-      tft.setCursor(160, yPosition);
+      tft.setCursor(margin+160, yPosition);
       tft.printf("%s", tcaTime);
-      tft.setCursor(240, yPosition);
+      tft.setCursor(margin+240, yPosition);
       tft.printf("%s", losTime);
-      tft.setCursor(320, yPosition);
+      tft.setCursor(margin+320, yPosition);
       tft.printf("%s", durationFormatted);
-      tft.setCursor(400, yPosition);
+      tft.setCursor(margin+400, yPosition);
       tft.printf("%.1f", overpass.maxelevation);
     }
     else
@@ -2655,29 +2658,30 @@ void displayOrbitNumber(int number, int x, int y, uint16_t color, bool refresh)
 
 void setup()
 {
+  pinMode(TFT_BLP, OUTPUT); // for TFT backlight
+        digitalWrite(TFT_BLP, HIGH);
+
   // clearPreferences();// uncomment for testing
   Serial.begin(115200);
   if (DEBUG_ON_TFT == true)
   {
-
-    waiting = 3000;
+    bootingMessagePause = 3000;
   }
+ 
   initializeTFT();
+  
+  displayISSimage(3000);
   // displayBlueMapimage(); Alternative Map
-  pinMode(TFT_BLP, OUTPUT); // for TFT backlight
-  digitalWrite(TFT_BLP, HIGH);
+  delay(800); //image fully loaded
+
   displayWelcomeMessage();
-
-  delay(waiting);
+  delay(bootingMessagePause);
   connectToWiFi();
-
-  delay(waiting);
+  delay(bootingMessagePause);
   getTimezoneData();
-
-  delay(waiting);
+  delay(bootingMessagePause);
   syncTimeFromNTP();
-
-  delay(waiting);
+  delay(bootingMessagePause);
   if (refreshTLEelements(true))
   {
     Serial.println("TLE refresh during setup completed.");
@@ -2687,17 +2691,16 @@ void setup()
     Serial.println("TLE refresh during setup failed or no update needed.");
   }
 
-  delay(waiting);
+  delay(bootingMessagePause);
   getTLEelements(tleLine1, tleLine2, true);
 
   sat.init("ISS (ZARYA)", tleLine1, tleLine2);
   sat.site(OBSERVER_LATITUDE, OBSERVER_LONGITUDE, OBSERVER_ALTITUDE);
 
-  delay(waiting);
-  digitalWrite(TFT_BLP, LOW);
-  displayISSimage(1000);
-  displayTableNext10Passes();
+  delay(bootingMessagePause);
 
+  digitalWrite(TFT_BLP, HIGH);
+  displayTableNext10Passes();
   displayMapWithMultiPasses();
   displayPolarPlotPage();
   displayAzElPlotPage();
