@@ -29,16 +29,14 @@ const char *TLE_PREF_NAMESPACE = "TLE_data";
 const char *TLE_LINE1_KEY = "tle_line1";
 const char *TLE_LINE2_KEY = "tle_line2";
 const char *TLE_TIMESTAMP_KEY = "tle_timestamp";
-char TLEageHHMM[6]; // Buffer to store the formatted age (HH:MM)
-int bootingMessagePause = 0;    // for TFT messages at boot
+char TLEageHHMM[6];          // Buffer to store the formatted age (HH:MM)
+int bootingMessagePause = 0; // for TFT messages at boot
 bool refresh = false;
 unsigned long lastRefreshTime = 0;
 
 unsigned long lastTLEUpdate = 0;              // Track the last update time
 const unsigned long updateInterval = 3600000; // 1 hour in milliseconds
-// Global variables to store the previous elevation and the flag
-float previousElevation =-1;
-bool elevationCrossedZero = false;
+
 // Flag to track if time was successfully updated at least once
 bool timeInitialized = false;
 // NTP Client for UTC time
@@ -87,8 +85,11 @@ unsigned long passSeconds = 0;  // Remaining seconds after minutes
 // Retry and error-checking settings
 const int MAX_NTP_RETRIES = 5; // Maximum number of attempts to get time from NTP server
 int orbitNumber;
-
+bool first_time_below;
+bool first_time_above;
 // Function declarations
+void displayReaminingPassTime(unsigned long durationInSec, int x, int y, uint16_t color, bool refresh);
+
 void displayRawNumberRightAligned(int rightEdgeX, int y, int number, int color);
 void displayFormattedNumberRightAligned(int rightEdgeX, int y, int number, int color);
 void displayTimeRightAligned(int rightEdgeX, int y, int seconds, int color);
@@ -1069,17 +1070,16 @@ void displayAzElPlotPage()
   }
   // IF VISIBLE
 
-  sat.findsat(nextPassStart + 300); 
+  sat.findsat(nextPassStart + 300);
   int x = PLOT_X + map(nextPassStart + 300, nextPassStart, nextPassEnd, 0, PLOT_WIDTH);
   int elY1 = PLOT_Y + PLOT_HEIGHT - map(0, 0, 90, 0, PLOT_HEIGHT);
   int elY2 = PLOT_Y + PLOT_HEIGHT - map(sat.satEl, 0, 90, 0, PLOT_HEIGHT);
 
-  tft.drawLine(x - 1, elY1, x-1, elY2, TFT_RED);
+  tft.drawLine(x - 1, elY1, x - 1, elY2, TFT_RED);
   tft.drawLine(x, elY1, x, elY2, TFT_RED);
-  tft.drawLine(x + 1, elY1, x+1, elY2, TFT_RED);
+  tft.drawLine(x + 1, elY1, x + 1, elY2, TFT_RED);
   tft.fillCircle(x, elY2, 3, TFT_CYAN);
   tft.drawCircle(x, elY2, 4, TFT_RED);
-
 
   // Display TCA Time
   int tcaX = PLOT_X + map(nextPassCulminationTime, nextPassStart, nextPassEnd, 0, PLOT_WIDTH);
@@ -1089,7 +1089,7 @@ void displayAzElPlotPage()
   tft.setCursor(tcaX - 35, tcaY - 8);
   tft.setFreeFont(&FreeMonoBold12pt7b);
   tft.print(tcaTimeStr);
-  tft.fillCircle(tcaX, tcaY,4,TFT_GREEN );
+  tft.fillCircle(tcaX, tcaY, 4, TFT_GREEN);
 
   // Display Pass Duration
   unsigned long duration = nextPassEnd - nextPassStart;
@@ -1314,23 +1314,18 @@ void displayPolarPlotPage()
   }
   tft.fillCircle(x, y, 3, TFT_RED); // Red dot for LOS
 
- // IF VISIBLE
-  sat.findsat(nextPassStart + 300); 
-     float azimuth = sat.satAz;
-    float elevation = sat.satEl;
-    int radius = map(90 - elevation, 0, 90, 0, POLAR_RADIUS);
-          float radianAzimuth = radians(azimuth);
+  // IF VISIBLE
+  sat.findsat(nextPassStart + 300);
+  float azimuth = sat.satAz;
+  float elevation = sat.satEl;
+  int radius = map(90 - elevation, 0, 90, 0, POLAR_RADIUS);
+  float radianAzimuth = radians(azimuth);
 
-          x = POLAR_CENTER_X + radius * sin(radianAzimuth);
-      y = POLAR_CENTER_Y - radius * cos(radianAzimuth);
-  
-
+  x = POLAR_CENTER_X + radius * sin(radianAzimuth);
+  y = POLAR_CENTER_Y - radius * cos(radianAzimuth);
 
   tft.fillCircle(x, y, 3, TFT_CYAN);
   tft.drawCircle(x, y, 4, TFT_RED);
-
-
-
 }
 
 void updateBigClock(bool refresh = false)
@@ -1800,8 +1795,8 @@ void displayISSimage(int duration)
     Serial.println("ms");
     tft.endWrite();
   }
-  
-digitalWrite(TFT_BLP, HIGH);
+
+  digitalWrite(TFT_BLP, HIGH);
 
   delay(duration);
 }
@@ -2083,19 +2078,19 @@ void displayTableNext10Passes()
   tft.fillScreen(TFT_BLACK);
   tft.setTextFont(4);
   tft.setTextColor(TFT_GOLD, TFT_BLACK);
-int margin=12;
+  int margin = 12;
   // Draw headers
   tft.setCursor(margin, 0);
   tft.print("DATE");
-  tft.setCursor(margin+85, 0);
+  tft.setCursor(margin + 85, 0);
   tft.print("AOS");
-  tft.setCursor(margin+164, 0);
+  tft.setCursor(margin + 164, 0);
   tft.print("TCA");
-  tft.setCursor(margin+244, 0);
+  tft.setCursor(margin + 244, 0);
   tft.print("LOS");
-  tft.setCursor(margin+324, 0);
+  tft.setCursor(margin + 324, 0);
   tft.print("DUR");
-  tft.setCursor(margin+400, 0);
+  tft.setCursor(margin + 400, 0);
   tft.print("MEL");
 
   // Adjust timezone and DST offset
@@ -2174,15 +2169,15 @@ int margin=12;
       int yPosition = i * 23 + 5; // Adjust vertical spacing for each row
       tft.setCursor(margin, yPosition);
       tft.printf("%s", passDate);
-      tft.setCursor(margin+80, yPosition);
+      tft.setCursor(margin + 80, yPosition);
       tft.printf("%s", aosTime);
-      tft.setCursor(margin+160, yPosition);
+      tft.setCursor(margin + 160, yPosition);
       tft.printf("%s", tcaTime);
-      tft.setCursor(margin+240, yPosition);
+      tft.setCursor(margin + 240, yPosition);
       tft.printf("%s", losTime);
-      tft.setCursor(margin+320, yPosition);
+      tft.setCursor(margin + 320, yPosition);
       tft.printf("%s", durationFormatted);
-      tft.setCursor(margin+400, yPosition);
+      tft.setCursor(margin + 400, yPosition);
       tft.printf("%.1f", overpass.maxelevation);
     }
     else
@@ -2346,7 +2341,7 @@ void displayTimeRightAligned(int rightEdgeX, int y, int seconds, int color, bool
   timeString += (hours < 10 ? "0" : "") + String(hours) + ":";
   timeString += (minutes < 10 ? "0" : "") + String(minutes) + ":";
   timeString += (seconds < 10 ? "0" : "") + String(seconds);
-
+  Serial.println(timeString); //XXXXX
   static String previousTimeString = ""; // Store the previously displayed value
   if (!isInitiated || refresh)
   {
@@ -2659,7 +2654,7 @@ void displayOrbitNumber(int number, int x, int y, uint16_t color, bool refresh)
 void setup()
 {
   pinMode(TFT_BLP, OUTPUT); // for TFT backlight
-        digitalWrite(TFT_BLP, HIGH);
+  digitalWrite(TFT_BLP, HIGH);
 
   // clearPreferences();// uncomment for testing
   Serial.begin(115200);
@@ -2667,12 +2662,12 @@ void setup()
   {
     bootingMessagePause = 3000;
   }
- 
+
   initializeTFT();
-  
+
   displayISSimage(3000);
   // displayBlueMapimage(); Alternative Map
-  delay(800); //image fully loaded
+  delay(800); // image fully loaded
 
   displayWelcomeMessage();
   delay(bootingMessagePause);
@@ -2700,12 +2695,13 @@ void setup()
   delay(bootingMessagePause);
 
   digitalWrite(TFT_BLP, HIGH);
-  displayTableNext10Passes();
-  displayMapWithMultiPasses();
-  displayPolarPlotPage();
-  displayAzElPlotPage();
-  displayPExpedition72image();
-
+  /*
+   displayTableNext10Passes();
+   displayMapWithMultiPasses();
+   displayPolarPlotPage();
+   displayAzElPlotPage();
+   displayPExpedition72image();
+ */
   tft.fillScreen(TFT_BLACK);
 
   displayMainPage();
@@ -2875,24 +2871,17 @@ void displayMainPage()
   timeClient.update();
   getOrbitNumber(unixtime);
   unixtime = timeClient.getEpochTime(); // Get the current UNIX timestamp
+                                        // for debugging   XXXXXXX
+  int deltaHour = 0;
+  int deltaMin = 0;
+  unixtime = unixtime + deltaHour * 3600 + deltaMin * 60;
+
   unsigned long nextpassInSec = nextPassStart - unixtime;
   updateBigClock(refresh);
 
   // Update the satellite data
+
   sat.findsat(unixtime);
-
-// Check if elevation has crossed zero (positive to negative or vice versa)
-  if ((previousElevation > 0 && sat.satEl < 0) || (previousElevation < 0 && sat.satEl > 0))
-  {
-    elevationCrossedZero = true;  // Set the flag to true when crossing zero
-  }
-  else
-  {
-    elevationCrossedZero = false;  // Reset the flag if no crossing
-  }
-
-
-
 
   // Determine AZELcolor based on nextpassInSec
   int AZELcolor;
@@ -2926,19 +2915,28 @@ void displayMainPage()
   int shifting = 40;
   int lowerBannerY = 295;
 
-// to clean the bottom banner
-if (elevationCrossedZero==true)  {
- tft.setCursor(shifting, lowerBannerY);
- tft.print("                                ");
- elevationCrossedZero=false;
- }
+  // Managing the bottom banner
 
-  tft.setCursor(shifting, lowerBannerY);
+calculateNextPass();
+  // tft.setCursor(shifting, lowerBannerY);
+  // tft.print("                                ");
+//delay(5000);
   if (sat.satEl < 0)
   {
+    if (first_time_above == false)
+    {
+      tft.setCursor(shifting, lowerBannerY);
+      tft.print("                                                                    ");
+      first_time_above = true;
+      first_time_below = true;
+    }
+
     tft.setCursor(shifting, lowerBannerY);
     tft.setTextColor(TFT_CYAN);
     tft.print("Next Pass in ");
+    //Serial.print("nextpassInSec: ");
+        //Serial.println(nextpassInSec);
+
     displayTimeRightAligned(tft.textWidth("Next pass in 00:00:00 ") + shifting, lowerBannerY, nextpassInSec, TFT_CYAN, refresh);
     tft.setCursor(tft.textWidth("Next pass in 00:00:00  ") + shifting, lowerBannerY);
     tft.print(" at ");
@@ -2946,16 +2944,17 @@ if (elevationCrossedZero==true)  {
   }
   else
   {
-unsigned long timeRemaining = nextPassEnd - unixtime; // Calculate the difference
-// Convert to MM:SS
-unsigned long minutes = timeRemaining / 60; // Get the number of full minutes
-unsigned long seconds = timeRemaining % 60; // Get the remaining seconds
+    if (first_time_below == true)
+    {
+      tft.setCursor(shifting, lowerBannerY);
+      tft.print("                                                                    ");
+      first_time_below = false;
+      first_time_above = true;
+    }
 
-// Format and print as MM:SS
-tft.print("Satellite Visibility: " + String(minutes) + ":" + (seconds < 10 ? "0" : "") + String(seconds));
-
+    unsigned long timeRemaining = nextPassEnd - unixtime; // Calculate the difference
+    displayReaminingPassTime(timeRemaining, 50, lowerBannerY, TFT_CYAN, false);
   }
-  
 
   Serial.print("nextPassStart:  ");
   Serial.println(nextPassStart);
@@ -2982,4 +2981,76 @@ tft.print("Satellite Visibility: " + String(minutes) + ":" + (seconds < 10 ? "0"
   Serial.println(" km");
 
   refresh = false;
+}
+
+void displayReaminingPassTime(unsigned long durationInSec, int x, int y, uint16_t color, bool refresh)
+{
+  tft.setTextSize(1);
+  tft.setTextFont(4);
+
+  static char previousOutput[9] = "        "; // Previous state (8 characters + null terminator) "00:00:00"
+  static uint16_t previousColor = TFT_GREEN;  // Track the last color used
+  static bool isInitiated = false;            // Track initialization of static elements
+  char output[9] = "        ";                // Current output (8 characters + null terminator)
+
+  // Calculate hours, minutes, and seconds from durationInSec
+  unsigned long hours = durationInSec / 3600;          // Get the number of full hours
+  unsigned long minutes = (durationInSec % 3600) / 60; // Get the number of full minutes
+  unsigned long seconds = durationInSec % 60;          // Get the remaining seconds
+
+  // Fill the output array with the formatted time "HH:MM:SS"
+  sprintf(output, "%02lu:%02lu:%02lu", hours, minutes, seconds);
+  Serial.println(output);
+  // Positions for characters
+  String preText = "ISS above horizon for ";
+  int lPreText = preText.length(); // XXXXX
+  int shift = 0;
+  int xPos[] = {0, 14, 28, 42 - shift, 56 - shift, 70 - shift, 84 - 2 * shift, 98 - 2 * shift};
+  //  1   2   :    4          5          :         7            8
+
+  int leftmargin = lPreText * 14 - 61;
+
+  for (int i = 0; i < 8; i++)
+    xPos[i] += x + leftmargin;
+
+  // Handle color change or refresh logic
+  if (color != previousColor)
+  {
+    // If the color has changed, trigger a full redraw
+    refresh = true;
+    previousColor = color; // Update the last used color
+  }
+
+  // Handle refresh logic for static elements (if needed)
+  if (!isInitiated || refresh)
+  {
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString(preText, x, y);
+    isInitiated = true;
+  }
+
+  // Update only changed characters or redraw all if refresh is triggered
+  for (int i = 0; i < 8; i++)
+  {
+    if (output[i] != previousOutput[i] || refresh)
+    {
+      // Print the previous character in black to erase it
+      if (previousOutput[i] != ' ')
+      {
+        tft.setTextColor(TFT_BLACK, TFT_BLACK);
+        tft.drawChar(previousOutput[i], xPos[i], y);
+      }
+
+      // Draw the new character
+      if (output[i] != ' ')
+      {
+        tft.setTextColor(color, TFT_BLACK);
+        tft.drawChar(output[i], xPos[i], y);
+      }
+
+      // Update previous state
+      previousOutput[i] = output[i];
+    }
+  }
+  Serial.println();
 }
