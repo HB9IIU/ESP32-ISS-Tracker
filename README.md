@@ -346,7 +346,13 @@ A heartfelt thank you to the authors and contributors of the libraries used in t
 
 
 ---
+## Hardware Assembly
 
+- You will find the wiring diagram in the `doc` folder of this repository.
+- The assembly process is straightforward: you simply need to wire specific pins of the ESP32 to the TFT display as shown in the diagram.
+- There is **no need for a custom PCB**. The connections have been made pin-to-pin directly.
+- To simplify the soldering process, you can use **Dupont cables** with their plastic housings removed. This makes handling and soldering much easier.
+---
 ## Setup
 
 1. **Copy the Repository**:  
