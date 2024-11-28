@@ -157,29 +157,79 @@ To enhance the usability and aesthetics of the project, I have included **all ne
    - Click on **File > Open Folder**, then select the unzipped project folder.  
    - Wait for PlatformIO to automatically download all necessary dependencies (this may take a few minutes).
 
-4. **Configure `config.h`**:  
-   Update the following parameters in the `config.h` file to match your Wi-Fi and location:  
-   ```cpp
-   // Wi-Fi configuration
-const char* WIFI_SSID = "your SSID";
-const char* WIFI_PASSWORD = "your Password";
+## 4. Configure `config.h`
+
+To run this project successfully, you need to configure the `config.h` file by providing your specific settings for Wi-Fi, API, and observer location. Follow the instructions below to update the file.
+
+### **Update Wi-Fi Configuration**  
+Set up your primary and alternate Wi-Fi credentials in the `config.h` file. These settings will allow your device to connect to the network.
+
+```cpp
+// Wi-Fi configuration
+const char* WIFI_SSID = "your SSID";              // Replace with your primary Wi-Fi SSID
+const char* WIFI_PASSWORD = "your Password";      // Replace with your primary Wi-Fi password
 
 // Alternative AP
-const char* WIFI_SSID_ALT = "your SSID";
-const char* WIFI_PASSWORD_ALT  = "your Password";
+const char* WIFI_SSID_ALT = "your alternate SSID";   // Replace with your alternate Wi-Fi SSID
+const char* WIFI_PASSWORD_ALT = "your alternate Password"; // Replace with your alternate Wi-Fi password
+```
+
+---
+
+### **Add API Configuration**  
+The project uses the [TimeZoneDB API](https://timezonedb.com/) to fetch accurate time zone data.  
+1. Visit [TimeZoneDB](https://timezonedb.com/) and create a free account.  
+2. Generate your API key.  
+3. Update the following line in `config.h` with your API key:  
+
+```cpp
+// API configuration
+const char* TIMEZONE_API_KEY = "your API key";     // Replace with your TimeZoneDB API key
+```
+
+---
+
+### **Set Observer Location**  
+To ensure accurate calculations and visualizations, update the geographic location (latitude, longitude, and altitude in meters) for the observer.  
+
+```cpp
+// Observer location
+const double OBSERVER_LATITUDE = 0.0;     // Replace with your latitude
+const double OBSERVER_LONGITUDE = 0.0;   // Replace with your longitude
+const double OBSERVER_ALTITUDE = 0.0;   // Replace with your altitude in meters
+```
+
+---
+
+### **Example `config.h` File**  
+Here’s an example of a completed `config.h` file:  
+
+```cpp
+// Wi-Fi configuration
+const char* WIFI_SSID = "MyHomeNetwork";
+const char* WIFI_PASSWORD = "SuperSecretPassword";
+
+// Alternative AP
+const char* WIFI_SSID_ALT = "OfficeNetwork";
+const char* WIFI_PASSWORD_ALT = "OfficePassword123";
 
 // API configuration
-// TimeZoneDB is a free service that provides a comprehensive time zone database for cities worldwide. 
-// get yours here https://timezonedb.com/
-const char* TIMEZONE_API_KEY = "your API key";
-
+const char* TIMEZONE_API_KEY = "ABCD1234EFGH5678"; // Example API key
 
 // Observer location
-const double OBSERVER_LATITUDE = your latitude;
-const double OBSERVER_LONGITUDE = your longitude;
-const double OBSERVER_ALTITUDE = your altitude in meters;
+const double OBSERVER_LATITUDE = 46.4717;      // Latitude of your location
+const double OBSERVER_LONGITUDE = 6.8768;     // Longitude of your location
+const double OBSERVER_ALTITUDE = 400.0;       // Altitude of your location in meters
+```
 
-   ```
+---
+
+### **Important Notes**  
+- Ensure the Wi-Fi credentials and API key are accurate and match your setup.  
+- Latitude and longitude values should reflect your exact location for the best results. You can find these using [Google Maps](https://maps.google.com).  
+- The altitude value must be in meters.  
+
+Once you’ve updated `config.h` with your settings, your project will be ready to run! 🎉
 
 5. **Compile and Upload the Code**:  
    - Connect your ESP32 to your computer using a USB cable.  
@@ -227,4 +277,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 ### A Personal Note
 
-This is my very first project on GitHub, so please excuse any rough edges, messy code, or moments of "what was this person thinking?" I'm still learning as I go! Your feedback, suggestions, or even just your quiet support would mean a lot to me—and help me improve along the way. Thanks for checking out my little corner of GitHub! 🙌
+This is my very first project on GitHub, so please excuse any rough edges, chaotic code, or moments of "what was this person thinking?" I'm still figuring things out as I go! Your feedback, suggestions, or even just your silent nod of approval would mean a lot to me—and might just save future me from cringing too hard. Thanks for stopping by and checking out my little corner of GitHub! 🙌
