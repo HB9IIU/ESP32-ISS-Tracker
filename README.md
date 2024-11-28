@@ -157,7 +157,7 @@ To enhance the usability and aesthetics of the project, I have included **all ne
    - Click on **File > Open Folder**, then select the unzipped project folder.  
    - Wait for PlatformIO to automatically download all necessary dependencies (this may take a few minutes).
 
-4. Configure `config.h`
+4. **Configure `config.h`
 
 To run this project successfully, you need to configure the `config.h` file by providing your specific settings for Wi-Fi, API, and observer location. Follow the instructions below:
 
