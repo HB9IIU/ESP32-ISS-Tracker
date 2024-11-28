@@ -210,3 +210,7 @@ This project is licensed under the [MIT License](LICENSE).
 **HB9IIU - Daniel**  
 *Amateur Radio Enthusiast & Developer*  
 [Contact Me](mailto:daniel@hb9iiu.com)
+
+### A Personal Note
+
+This is my very first project published on GitHub, and I sincerely apologize if you find any parts of it incomplete, messy, or lacking clarity. I'm still learning and growing, and I appreciate your patience and understanding. Your feedback or suggestions for improvement are most welcome and will help me refine my skills. Thank you for checking out my project! 🙏
