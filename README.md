@@ -30,36 +30,43 @@ This project highlights how much capability can be packed into an ESP32, handlin
 
 ---
 
-## Features
+### Enhanced Description
 
-- 🌍 **Real-Time ISS Tracking**
-  - Displays live ISS position on a world map (equirectangular projection).
-  - Shows satellite footprint based on current altitude.
-  - Tracks the ISS’s orbit number dynamically.
+This ESP32-based ISS tracking application combines satellite data processing, real-time visualization, 
+and an intuitive user interface to deliver a robust experience. Here's how it works:
 
-- 📊 **Pass Prediction**
-  - Calculates next passes for the observer's location.
-  - Displays key pass details:
-    - Acquisition of Signal (AOS) time and azimuth.
-    - Maximum Elevation (TCA) time and angle.
-    - Loss of Signal (LOS) time and azimuth.
-    - Pass duration and maximum elevation.
+## Data Retrieval
+- The application periodically fetches the latest Two-Line Element (TLE) data for the ISS from 
+  primary and fallback APIs, ensuring up-to-date orbital calculations.
 
-- 📈 **Interactive Graphs**
-  - Polar plots for satellite passes.
-  - Azimuth/elevation time plots.
+## Pass Prediction
+- Using the SGP4 library, it predicts satellite passes based on the user's geographical location, 
+  calculating essential parameters such as azimuth, elevation, acquisition of signal (AOS), and loss of signal (LOS).
 
-- 🕒 **Time Management**
-  - Synchronizes with **NTP servers** for accurate timekeeping.
-  - Adjusts for local time zone and daylight saving time.
+## Real-Time Tracking
+- The system updates ISS latitude, longitude, altitude, azimuth, and elevation data in real-time, 
+  enabling live positional tracking.
 
-- 🖼 **Visual Enhancements**
-  - Displays splash screens and static images like ISS expeditions or logos.
-  - Dynamically updates live metrics such as altitude, distance, azimuth, and elevation.
+## Visual Display
+- A TFT screen showcases detailed ISS information through:
+  - Custom-rendered 7-segment clocks for precise time tracking.
+  - Dynamic plots, including polar and azimuth-elevation graphs.
+  - World map overlays with multi-pass predictions.
+  - Additional contextual graphics such as the ISS orbit path and current crew data.
 
-- ⚡ **Efficient UI Updates**
-  - Updates only changed screen elements for reduced flicker and improved performance.
-  - Touchscreen navigation between multiple pages.
+## User-Friendly Features
+- Smooth touchscreen navigation across multiple pages.
+- Auto-refresh for critical information such as TLE updates, next-pass predictions, and ISS current position.
+- Localized time calculations based on user-configured timezone and daylight saving settings.
+
+## Resilience & Redundancy
+- Automated fallback mechanisms for network and data retrieval issues.
+- TLE data is cached in flash memory, providing offline capabilities.
+
+## Interactive Insights
+- Displays upcoming ISS passes with key metrics like duration, max elevation, and visibility times.
+- Highlights conditions suitable for amateur radio communication.
+
 
 ---
 
@@ -242,14 +249,6 @@ const double OBSERVER_ALTITUDE = 400.0;       // Altitude of your location in me
    - The TFT screen will display a splash image.  
    - The ESP32 will connect to Wi-Fi and start retrieving ISS tracking data.  
    - The screen will update with real-time information about the ISS.
-
----
-
-## How It Works
-
-1. **Retrieve TLE Data**: The tracker fetches Two-Line Element (TLE) data for the ISS from online APIs.
-2. **Predict Satellite Passes**: Using the **Sgp4** library, it calculates upcoming passes for the observer's location.
-3. **Render Visualizations**: The TFT display shows live satellite data, including passes, azimuth, elevation, and more.
 
 ---
 
