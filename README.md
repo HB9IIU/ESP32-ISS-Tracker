@@ -132,17 +132,33 @@ A heartfelt thank you to the authors and contributors of the libraries used in t
 
 ## Setup
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/username/ISS-Life-Tracker.git
-   cd ISS-Life-Tracker
-   ```
+1. **Copy the Repository**:  
+   Download the project files from the repository:  
+   [https://github.com/HB9IIU/ESP32-ISS-Tracker/archive/refs/heads/main.zip](https://github.com/HB9IIU/ESP32-ISS-Tracker/archive/refs/heads/main.zip)
 
-2. **Install Dependencies**:
-   Ensure the necessary libraries are installed in your IDE.
+2. **Install PlatformIO**:  
+   PlatformIO is the development environment used to compile and upload the code to the ESP32. Follow these steps to install it:  
 
-3. **Configure `config.h`**:
-   Update the following parameters:
+   - **Install Visual Studio Code (VS Code)**:  
+     Download and install VS Code from the [official website](https://code.visualstudio.com/).  
+
+   - **Install the PlatformIO IDE Extension**:  
+     1. Open VS Code.  
+     2. Navigate to the Extensions view by clicking on the square icon in the sidebar or pressing `Ctrl+Shift+X`.  
+     3. Search for "**PlatformIO IDE**" and click "**Install**".  
+
+   - **Verify Installation**:  
+     1. Restart VS Code after installation.  
+     2. Access PlatformIO by clicking on its icon (a small alien head) in the sidebar or by pressing `Ctrl+Alt+P`.
+
+3. **Open the Project Folder**:  
+   - Unzip the downloaded repository.  
+   - Open VS Code.  
+   - Click on **File > Open Folder**, then select the unzipped project folder.  
+   - Wait for PlatformIO to automatically download all necessary dependencies (this may take a few minutes).
+
+4. **Configure `config.h`**:  
+   Update the following parameters in the `config.h` file to match your Wi-Fi and location:  
    ```cpp
    #define WIFI_SSID "your-ssid"
    #define WIFI_PASSWORD "your-password"
@@ -151,12 +167,20 @@ A heartfelt thank you to the authors and contributors of the libraries used in t
    #define OBSERVER_ALTITUDE 400
    ```
 
-4. **Upload to ESP32**:
-   - Connect the ESP32 to your computer.
-   - Compile and upload the code using Arduino IDE or PlatformIO.
+5. **Compile and Upload the Code**:  
+   - Connect your ESP32 to your computer using a USB cable.  
+   - In VS Code, open the **PlatformIO toolbar** (left sidebar).  
+   - Click on the **"Build"** button (checkmark icon) to compile the code.  
+     - If the compilation succeeds, proceed to the next step.  
+   - Click on the **"Upload"** button (arrow icon) to upload the code to your ESP32.
 
-5. **Run the Tracker**:
-   The TFT screen will display a splash image, connect to Wi-Fi, and start retrieving and displaying ISS tracking data.
+6. **Run the Tracker**:  
+   Once the code is uploaded successfully:  
+   - The TFT screen will display a splash image.  
+   - The ESP32 will connect to Wi-Fi and start retrieving ISS tracking data.  
+   - The screen will update with real-time information about the ISS.
+
+
 
 ---
 
