@@ -213,4 +213,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 ### A Personal Note
 
-This is my very first project on GitHub, so please excuse any rough edges, chaotic code, or moments of "what was this person thinking?" I'm still figuring things out as I go! Your feedback, suggestions, or even just your silent nod of approval would mean a lot to me—and might just save future me from cringing too hard. Thanks for stopping by and checking out my little corner of GitHub! 🙌
+This is my very first project on GitHub, so please excuse any rough edges, messy code, or moments of "what was this person thinking?" I'm still learning as I go! Your feedback, suggestions, or even just your quiet support would mean a lot to me—and help me improve along the way. Thanks for checking out my little corner of GitHub! 🙌
