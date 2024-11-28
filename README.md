@@ -67,20 +67,66 @@ This project highlights how much capability can be packed into an ESP32, handlin
 ## Requirements
 
 ### Hardware
-- **ESP32-S3** (or any compatible ESP32 board).
+- **ESP32** (ESP32-WROOM-32 or similar variations).
 - **480x320 TFT Display** (ILI9488 or compatible) with touch support.
 - **Wi-Fi Access** for retrieving TLE data and syncing time.
-
 ### Software
-- **Arduino IDE** or **PlatformIO** with required libraries:
-  - `TFT_eSPI`
-  - `Preferences`
-  - `ArduinoJson`
-  - `WiFi`
-  - `HTTPClient`
-  - `NTPClient`
-  - `PNGdec`
-  - `Sgp4`
+
+#### Included Libraries
+The following libraries are used in this project. **No additional installation is required**, as all libraries have been pre-copied into the `lib` folder of this repository.
+
+- **`WiFi.h`**  
+  Provides support for connecting the ESP32 to a Wi-Fi network, managing connections, and handling networking.
+
+- **`HTTPClient.h`**  
+  Enables the ESP32 to make HTTP GET and POST requests for interacting with REST APIs or downloading data from the web.
+
+- **`ArduinoJson.h`**  
+  A lightweight and efficient JSON library for parsing and generating JSON data, commonly used with web APIs.
+
+- **`Sgp4.h`**  
+  Implements the Simplified General Perturbations Model 4 (SGP4) for satellite orbit calculations, critical for tracking objects like the ISS.
+
+- **`NTPClient.h`**  
+  A simple Network Time Protocol (NTP) client for synchronizing the ESP32's internal clock with an NTP server.
+
+- **`WiFiUdp.h`**  
+  Provides UDP communication capabilities, used in conjunction with protocols like NTP.
+
+- **`TFT_eSPI.h`**  
+  A high-performance graphics library for rendering graphics and text on TFT screens, optimized for use with ESP32.
+
+- **`Preferences.h`**  
+  A library for reading and writing small pieces of data to the ESP32's flash memory, useful for storing persistent settings or data.
+
+- **`PNGdec.h`**  
+  Decodes PNG images for rendering on the TFT screen, enabling the use of rich graphical content.
+
+- **`SolarCalculator.h`**  
+  Provides tools for solar position calculations, helpful for determining solar angles or daylight conditions.
+
+- **`HB9IIU7segFonts.h`**  
+  Contains custom seven-segment display-like fonts, suitable for numeric or retro-style displays.
+
+---
+
+#### Additional Files in the Codebase
+- **Custom Images**: Files like `ISSsplashImage.h`, `worldMap.h`, and `fancySplashImage.h` store images in 8-bit array format for rendering on the TFT screen.
+- **TLE Data Management**: The `Preferences` library is used to persistently store and retrieve Two-Line Element (TLE) satellite data required for ISS tracking.
+
+---
+
+### Note
+All the required libraries are already included in the repository’s `lib` folder. **There is no need to install additional libraries**—this ensures that the project compiles and runs seamlessly.
+
+
+---
+
+### Acknowledgments
+
+A heartfelt thank you to the authors and contributors of the libraries used in this project. Your work has made it possible to bring this project to life. Each library brings a unique capability, and we deeply appreciate the time, effort, and expertise invested in creating and maintaining them. 🙏
+
+
 
 ---
 
