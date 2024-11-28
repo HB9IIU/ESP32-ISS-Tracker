@@ -122,6 +122,13 @@ All the required libraries are already included in the repository’s `lib` fold
 - The assembly process is straightforward: you simply need to wire specific pins of the ESP32 to the TFT display as shown in the diagram.
 - There is **no need for a custom PCB**. The connections have been made pin-to-pin directly.
 - To simplify the soldering process, you can use **Dupont cables** with their plastic housings removed. This makes handling and soldering much easier.
+## 3D Printing
+
+To enhance the usability and aesthetics of the project, I have included **all necessary STL files** for 3D printing in the `doc` folder of this repository. These files allow you to print the enclosure for your hardware, ensuring a neat and organized setup.
+<div align="center">
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/Enclosure3DprintFiles/Renderings/TFTESP32enclsoure_1.png" alt="Enclosure" width="500"> 
+
+</div>
 
 ## Setup
 
