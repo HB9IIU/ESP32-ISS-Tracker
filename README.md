@@ -13,11 +13,24 @@ This project highlights how much capability can be packed into an ESP32, handlin
 ---
 
 <div align="center">
-  <a href="https://www.youtube.com/watch?v=-qaXMxvWq9A" target="_blank">
+  <a href="https://www.youtube.com/watch?v=-qaXMxvWq9A">
     <img src="https://img.youtube.com/vi/-qaXMxvWq9A/0.jpg" alt="HB9IIU ISS Life Tracker Demo">
   </a>
-  <p><strong>Click the image above to watch the demo on YouTube!</strong></p>
+  <p><strong>Click the image above to watch the demo on YouTube!</strong><br>
+  (Right-click and select "Open in New Tab" to keep this page open)</p>
 </div>
+
+### Screenshots
+<div align="center">
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/Doc/ScreenShots/28%20November%202024/IMG_7612.png" alt="Screenshot 1" width="300">
+  <img src="https://via.placeholder.com/300" alt="Screenshot 2" width="300">
+  <img src="https://via.placeholder.com/300" alt="Screenshot 3" width="300">
+  <br>
+  <img src="https://via.placeholder.com/300" alt="Screenshot 4" width="300">
+  <img src="https://via.placeholder.com/300" alt="Screenshot 5" width="300">
+  <img src="https://via.placeholder.com/300" alt="Screenshot 6" width="300">
+</div>
+
 
 
 - 🌍 **Real-Time ISS Tracking**
