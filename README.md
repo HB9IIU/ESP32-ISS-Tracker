@@ -1,7 +1,7 @@
 
 # HB9IIU ISS Life Tracker
 ### **Efficient Real-Time Calculations on an ESP32**
-
+[Watch the Video on YouTube](https://www.youtube.com/watch?v=-qaXMxvWq9A)
 This project is an **ESP32-based tracking system for the International Space Station (ISS)** that demonstrates the impressive functionality and versatility of this microcontroller. Unlike other applications that rely on external APIs to fetch the ISS's current position, this system retrieves only the **Two-Line Elements (TLEs)** and current time from online sources. All orbital calculations are performed in real time using the **SGDP4 library**, making the solution self-contained and dynamic.
 
 The system provides detailed information about ISS passes, including **Acquisition of Signal (AOS)**, **Time of Closest Approach (TCA)**, and **Loss of Signal (LOS)**. The data is displayed on a **480x320 TFT screen** with a touchscreen interface, offering **clear and informative visualizations** such as polar plots, azimuth/elevation graphs, and satellite footprint maps. 

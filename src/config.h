@@ -32,7 +32,7 @@ constexpr bool SEVEN_DIGIT_STYLE = true;
 constexpr uint16_t SEVEN_DIGIT_COLOR = 0xFEA0;
 
 // Display option
-const bool DISPLAY_ISS_CREW = false;
+const bool DISPLAY_ISS_CREW = true;
 
 /* Predefined Colors in RGB565 format
  TFT_BLACK       0x0000  // Black
@@ -57,13 +57,7 @@ const bool DISPLAY_ISS_CREW = false;
  TFT_PINK        0xF81F  // Pink (alias for Magenta)
 */
 
-
-
-
 bool DEBUG_ON_TFT = false; // provides a bit more time to read messages at start-up 
-
-
-
 
 // Display configuration
 const double MIN_ELEVATION = 0;
