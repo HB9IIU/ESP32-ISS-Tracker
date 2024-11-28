@@ -22,9 +22,12 @@ This project highlights how much capability can be packed into an ESP32, handlin
 
 ### Screenshots
 <div align="center">
-  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/Doc/ScreenShots/IMG_7612.png" alt="Screenshot 1" width="300"> 
-  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/Doc/ScreenShots/IMG_7612.png" alt="Screenshot 2" width="300">
-
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7612.png" alt="Screenshot 1" width="300"> 
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7612.png" alt="Screenshot 2" width="300">
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7612.png" alt="Screenshot 3" width="300"> 
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7612.png" alt="Screenshot 4" width="300">
+    <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7612.png" alt="Screenshot 5" width="300"> 
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7612.png" alt="Screenshot 6" width="300">
 </div>
 
 
