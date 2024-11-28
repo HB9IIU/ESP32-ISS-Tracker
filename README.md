@@ -10,8 +10,8 @@ This project highlights how much capability can be packed into an ESP32, handlin
 ---
 ### Demo
 <div align="center">
-  <a href="https://www.youtube.com/watch?v=-qaXMxvWq9A">
-    <img src="https://img.youtube.com/vi/-qaXMxvWq9A/0.jpg" alt="HB9IIU ISS Life Tracker Demo">
+  <a href="https://youtu.be/Vp4qGIXc1Ag">
+    <img src="https://img.youtube.com/vi/-Vp4qGIXc1Ag/0.jpg" alt="HB9IIU ISS Life Tracker Demo">
   </a>
   <p><strong>Click the image above to watch the demo on YouTube!</strong><br>
   (Right-click and select "Open in New Tab" to keep this page open)</p>
