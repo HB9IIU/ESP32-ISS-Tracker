@@ -160,11 +160,25 @@ To enhance the usability and aesthetics of the project, I have included **all ne
 4. **Configure `config.h`**:  
    Update the following parameters in the `config.h` file to match your Wi-Fi and location:  
    ```cpp
-   #define WIFI_SSID "your-ssid"
-   #define WIFI_PASSWORD "your-password"
-   #define OBSERVER_LATITUDE 46.4717
-   #define OBSERVER_LONGITUDE 6.8768
-   #define OBSERVER_ALTITUDE 400
+   // Wi-Fi configuration
+const char* WIFI_SSID = "your SSID";
+const char* WIFI_PASSWORD = "your Password";
+
+// Alternative AP
+const char* WIFI_SSID_ALT = "your SSID";
+const char* WIFI_PASSWORD_ALT  = "your Password";
+
+// API configuration
+// TimeZoneDB is a free service that provides a comprehensive time zone database for cities worldwide. 
+// get yours here https://timezonedb.com/
+const char* TIMEZONE_API_KEY = "your API key";
+
+
+// Observer location
+const double OBSERVER_LATITUDE = your latitude;
+const double OBSERVER_LONGITUDE = your longitude;
+const double OBSERVER_ALTITUDE = your altitude in meters;
+
    ```
 
 5. **Compile and Upload the Code**:  
