@@ -30,40 +30,40 @@ This project highlights how much capability can be packed into an ESP32, handlin
 
 ---
 
-### Enhanced Description
+## Description
 
 This ESP32-based ISS tracking application combines satellite data processing, real-time visualization, 
 and an intuitive user interface to deliver a robust experience. Here's how it works:
 
-## Data Retrieval
+### Data Retrieval
 - The application periodically fetches the latest Two-Line Element (TLE) data for the ISS from 
   primary and fallback APIs, ensuring up-to-date orbital calculations.
 
-## Pass Prediction
+### Pass Prediction
 - Using the SGP4 library, it predicts satellite passes based on the user's geographical location, 
   calculating essential parameters such as azimuth, elevation, acquisition of signal (AOS), and loss of signal (LOS).
 
-## Real-Time Tracking
+### Real-Time Tracking
 - The system updates ISS latitude, longitude, altitude, azimuth, and elevation data in real-time, 
   enabling live positional tracking.
 
-## Visual Display
+### Visual Display
 - A TFT screen showcases detailed ISS information through:
   - Custom-rendered 7-segment clocks for precise time tracking.
   - Dynamic plots, including polar and azimuth-elevation graphs.
   - World map overlays with multi-pass predictions.
   - Additional contextual graphics such as the ISS orbit path and current crew data.
 
-## User-Friendly Features
+### User-Friendly Features
 - Smooth touchscreen navigation across multiple pages.
 - Auto-refresh for critical information such as TLE updates, next-pass predictions, and ISS current position.
 - Localized time calculations based on user-configured timezone and daylight saving settings.
 
-## Resilience & Redundancy
+### Resilience & Redundancy
 - Automated fallback mechanisms for network and data retrieval issues.
 - TLE data is cached in flash memory, providing offline capabilities.
 
-## Interactive Insights
+### Interactive Insights
 - Displays upcoming ISS passes with key metrics like duration, max elevation, and visibility times.
 - Highlights conditions suitable for amateur radio communication.
 
