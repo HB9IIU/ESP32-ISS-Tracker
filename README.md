@@ -8,16 +8,25 @@ The system provides detailed information about ISS passes, including **Acquisiti
 This project highlights how much capability can be packed into an ESP32, handling computationally intensive tasks while remaining compact and efficient.
 
 ---
+### Demo
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=-qaXMxvWq9A">
+    <img src="https://img.youtube.com/vi/-qaXMxvWq9A/0.jpg" alt="HB9IIU ISS Life Tracker Demo">
+  </a>
+  <p><strong>Click the image above to watch the demo on YouTube!</strong><br>
+  (Right-click and select "Open in New Tab" to keep this page open)</p>
+</div>
 
-## Screenshots
-Screenshots of the tracker in action:
-1. Splash screen displaying project title.
-2. Wi-Fi connection and time synchronization status.
-3. Real-time ISS tracking data with azimuth, elevation, orbit number, and next pass details.
-4. Elevation and azimuth graph for the current pass.
-5. Polar plot with ISS trajectory.
-6. Map showing the next three ISS passes.
-7. Display of the current expedition crew.
+### Screenshots
+<div align="center">
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7612.png" alt="Screenshot 1" width="300"> 
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7613.png" alt="Screenshot 2" width="300">
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7615.png" alt="Screenshot 3" width="300"> 
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7616.png" alt="Screenshot 4" width="300">
+    <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7617.png" alt="Screenshot 5" width="300"> 
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7618.png" alt="Screenshot 6" width="300">
+    <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7619.png" alt="Screenshot 6" width="300">
+</div>
 
 ---
 
@@ -370,8 +379,8 @@ A heartfelt thank you to the authors and contributors of the libraries used in t
    ```cpp
    #define WIFI_SSID "your-ssid"
    #define WIFI_PASSWORD "your-password"
-   #define OBSERVER_LATITUDE 46.4717
-   #define OBSERVER_LONGITUDE 6.8768
+   #define OBSERVER_LATITUDE 47.4717
+   #define OBSERVER_LONGITUDE 3.8768
    #define OBSERVER_ALTITUDE 400
    ```
 
