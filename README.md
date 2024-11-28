@@ -271,7 +271,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 **HB9IIU - Daniel**  
 *Amateur Radio Enthusiast & Developer*  
-[Contact Me](mailto:daniel@hb9iiu.com)
+Contact: daniel at hb9iiu.com
 
 ### A Personal Note
 
