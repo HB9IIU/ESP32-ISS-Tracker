@@ -12,13 +12,13 @@ This project highlights how much capability can be packed into an ESP32, handlin
 
 ---
 
-## Features
 <div align="center">
-  <a href="https://www.youtube.com/watch?v=-qaXMxvWq9A">
+  <a href="https://www.youtube.com/watch?v=-qaXMxvWq9A" target="_blank">
     <img src="https://img.youtube.com/vi/-qaXMxvWq9A/0.jpg" alt="HB9IIU ISS Life Tracker Demo">
   </a>
   <p><strong>Click the image above to watch the demo on YouTube!</strong></p>
 </div>
+
 
 - 🌍 **Real-Time ISS Tracking**
   - Displays live ISS position on a world map (equirectangular projection).
