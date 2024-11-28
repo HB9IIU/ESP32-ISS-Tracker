@@ -116,12 +116,6 @@ The following libraries are used in this project. **No additional installation i
 All the required libraries are already included in the repository’s `lib` folder. **There is no need to install additional libraries**—this ensures that the project compiles and runs seamlessly.
 
 ---
-
-### Acknowledgments
-
-A heartfelt thank you to the authors and contributors of the libraries used in this project. Your work has made it possible to bring this project to life. Each library brings a unique capability, and we deeply appreciate the time, effort, and expertise invested in creating and maintaining them. 🙏
-
----
 ## Hardware Assembly
 
 - You will find the wiring diagram in the `doc` folder of this repository.
@@ -197,6 +191,12 @@ Contributions are welcome! If you’d like to improve this project, please:
 - Submit a pull request with a detailed description.
 
 ---
+
+### Acknowledgments
+
+A heartfelt thank you to the authors and contributors of the libraries used in this project. Your work has made it possible to bring this project to life. Each library brings a unique capability, and we deeply appreciate the time, effort, and expertise invested in creating and maintaining them. 🙏
+---
+
 
 ## License
 
