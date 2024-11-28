@@ -192,8 +192,7 @@ Contributions are welcome! If you’d like to improve this project, please:
 
 ---
 
-### Acknowledgments
-
+## Acknowledgments
 A heartfelt thank you to the authors and contributors of the libraries used in this project. Your work has made it possible to bring this project to life. Each library brings a unique capability, and we deeply appreciate the time, effort, and expertise invested in creating and maintaining them. 🙏
 ---
 
@@ -208,5 +207,5 @@ This project is licensed under the [MIT License](LICENSE).
 
 **HB9IIU - Daniel**  
 *Amateur Radio Enthusiast & Developer*  
-[GitHub Profile](https://github.com/username) | [Contact Me](mailto:email@example.com)
+[Contact Me](mailto:email@example.com)
 
