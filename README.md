@@ -157,11 +157,11 @@ To enhance the usability and aesthetics of the project, I have included **all ne
    - Click on **File > Open Folder**, then select the unzipped project folder.  
    - Wait for PlatformIO to automatically download all necessary dependencies (this may take a few minutes).
 
-4. **Configure `config.h`
+### 4. Configure `config.h`
 
-To run this project successfully, you need to configure the `config.h` file by providing your specific settings for Wi-Fi, API, and observer location. Follow the instructions below to update the file.
+To run this project successfully, you need to configure the `config.h` file by providing your specific settings for Wi-Fi, API, and observer location. Follow the instructions below:
 
-### **Update Wi-Fi Configuration**  
+#### **Wi-Fi Configuration**  
 Set up your primary and alternate Wi-Fi credentials in the `config.h` file. These settings will allow your device to connect to the network.
 
 ```cpp
@@ -176,7 +176,7 @@ const char* WIFI_PASSWORD_ALT = "your alternate Password"; // Replace with your 
 
 ---
 
-### **Add API Configuration**  
+#### **API Configuration**  
 The project uses the [TimeZoneDB API](https://timezonedb.com/) to fetch accurate time zone data.  
 1. Visit [TimeZoneDB](https://timezonedb.com/) and create a free account.  
 2. Generate your API key.  
@@ -189,20 +189,20 @@ const char* TIMEZONE_API_KEY = "your API key";     // Replace with your TimeZone
 
 ---
 
-### **Set Observer Location**  
-To ensure accurate calculations and visualizations, update the geographic location (latitude, longitude, and altitude in meters) for the observer.  
+#### **Observer Location**  
+To ensure accurate calculations and visualizations, update the geographic location (latitude, longitude, and altitude in meters) for the observer.
 
 ```cpp
 // Observer location
 const double OBSERVER_LATITUDE = 0.0;     // Replace with your latitude
 const double OBSERVER_LONGITUDE = 0.0;   // Replace with your longitude
-const double OBSERVER_ALTITUDE = 0.0;   // Replace with your altitude in meters
+const double OBSERVER_ALTITUDE = 0.0;    // Replace with your altitude in meters
 ```
 
 ---
 
-### **Example `config.h` File**  
-Here’s an example of a completed `config.h` file:  
+#### **Example `config.h` File**  
+Here’s an example of a completed `config.h` file for reference:
 
 ```cpp
 // Wi-Fi configuration
@@ -226,10 +226,10 @@ const double OBSERVER_ALTITUDE = 400.0;       // Altitude of your location in me
 
 ### **Important Notes**  
 - Ensure the Wi-Fi credentials and API key are accurate and match your setup.  
-- Latitude and longitude values should reflect your exact location for the best results. You can find these using [Google Maps](https://maps.google.com).  
-- The altitude value must be in meters.  
+- Latitude and longitude values should reflect your exact location for best results. Use [Google Maps](https://maps.google.com) or a GPS device to find these coordinates.  
+- The altitude value must be in meters.
 
-Once you’ve updated `config.h` with your settings, your project will be ready to run! 🎉
+---
 
 5. **Compile and Upload the Code**:  
    - Connect your ESP32 to your computer using a USB cable.  
