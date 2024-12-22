@@ -1368,7 +1368,7 @@ void updateBigClock(bool refresh = false)
 {
     if (SEVEN_DIGIT_STYLE == true)
     {
-        display7segmentClock(unixtime, 26, 92, SEVEN_DIGIT_COLOR, refresh);
+        display7segmentClock(unixtime+ timezoneOffset+ dstOffset, 26, 92, SEVEN_DIGIT_COLOR, refresh);
         return;
     }
     int y = 0;
@@ -1395,7 +1395,10 @@ void updateBigClock(bool refresh = false)
     unsigned long utcTime = timeClient.getEpochTime();
 
     // Apply timezone and DST offsets
-    unsigned long localTime = utcTime + timezoneOffset + dstOffset;
+    unsigned long localTime = utcTime + timezoneOffset+ dstOffset;   //NOT CLEAR YET XXXXX
+    Serial.print(timezoneOffset);
+        Serial.print("   ");
+    Serial.print(dstOffset);
 
     // Convert to human-readable format
     struct tm *timeinfo = gmtime((time_t *)&localTime); // Use gmtime for seconds since epoch
@@ -2892,7 +2895,7 @@ void displayMainPage()
     // Update the time from NTP
     timeClient.update();
     unixtime = timeClient.getEpochTime(); // Get the current UNIX timestamp
-                                          // for debugging   XXXXXXX
+                                          // for debugging   
     int deltaHour = 0;
     int deltaMin = 0;
     unixtime = unixtime + deltaHour * 3600 + deltaMin * 60;
@@ -3253,7 +3256,7 @@ void display7segmentClock(unsigned long unixTime, int xOffset, int yOffset, uint
     tft.print(":");
 
     // Calculate hours, minutes, and seconds
-    int hours = (unixTime % 86400L) / 3600; // Hours since midnight
+    int hours = (unixTime % 86400L) / 3600; // Hours since midnight XXXX
     int minutes = (unixTime % 3600) / 60;   // Minutes
     int seconds = unixTime % 60;            // Seconds
 
