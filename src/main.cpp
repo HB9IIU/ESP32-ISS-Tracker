@@ -2666,7 +2666,7 @@ void setup()
 {
     pinMode(TFT_BLP, OUTPUT); // for TFT backlight
     digitalWrite(TFT_BLP, HIGH);
-    delay(8000);
+
     // clearPreferences();// uncomment for testing
     Serial.begin(115200);
     if (DEBUG_ON_TFT == true)
