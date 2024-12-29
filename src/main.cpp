@@ -94,7 +94,7 @@ bool first_time_above = true;
 // Function declarations
 void computeSun();
 void display7segmentClock(unsigned long unixTime, int xOffset, int yOffset, uint16_t textColor, bool refresh);
-
+String displayRemainingVisibleTimeinMMSS(int delta) ;
 void displayRemainingPassTime(unsigned long durationInSec, int x, int y, uint16_t color, bool refresh);
 void displayNextPassTime(unsigned long durationInSec, int x, int y, uint16_t color, bool refresh);
 void displayRawNumberRightAligned(int rightEdgeX, int y, int number, int color);
@@ -884,7 +884,9 @@ void calculateNextPass()
     passinfo overpass;
 
     // Initialize prediction with the current time and minimum elevation
-    sat.initpredpoint(unixtime, MIN_ELEVATION);
+    unixtime = timeClient.getEpochTime(); // Get the current UNIX time
+
+    sat.initpredpoint(unixtime+10*60, MIN_ELEVATION);// adding 10 minutes to ensure that next pass is not in the past (experimental) 
 
     // Find the next pass using up to 100 iterations
     bool passFound = sat.nextpass(&overpass, 100);
@@ -1368,7 +1370,7 @@ void updateBigClock(bool refresh = false)
 {
     if (SEVEN_DIGIT_STYLE == true)
     {
-        display7segmentClock(unixtime+ timezoneOffset+ dstOffset, 26, 92, SEVEN_DIGIT_COLOR, refresh);
+        display7segmentClock(unixtime + timezoneOffset + dstOffset, 26, 92, SEVEN_DIGIT_COLOR, refresh);
         return;
     }
     int y = 0;
@@ -1395,9 +1397,9 @@ void updateBigClock(bool refresh = false)
     unsigned long utcTime = timeClient.getEpochTime();
 
     // Apply timezone and DST offsets
-    unsigned long localTime = utcTime + timezoneOffset+ dstOffset;   //NOT CLEAR YET XXXXX
+    unsigned long localTime = utcTime + timezoneOffset + dstOffset; // NOT CLEAR YET XXXXX
     Serial.print(timezoneOffset);
-        Serial.print("   ");
+    Serial.print("   ");
     Serial.print(dstOffset);
 
     // Convert to human-readable format
@@ -2753,12 +2755,12 @@ void loop()
 
     // Get the current touch pressure
     touchTFT = tft.getTouchRawZ();
-    //Serial.println(touchCounter);
+    // Serial.println(touchCounter);
 
     if (touchCounter == 2) // AZel Plot
     {
-        //Serial.println(sat.satEl);
-        // Check if 5 seconds (5000 ms) have passed since the last refresh
+        // Serial.println(sat.satEl);
+        //  Check if 5 seconds (5000 ms) have passed since the last refresh
         if (millis() - AzElPlotlastRefreshTime >= 15000)
         {
             displayAzElPlotPage();              // Refresh the display
@@ -2788,7 +2790,7 @@ void loop()
     }
 
     // Check if the touch pressure exceeds the threshold and debounce
-    if (touchTFT > 500)
+    if (touchTFT > touchTreshold)
     {
         // Only increment the counter if enough time has passed since the last touch
         if (millis() - lastTouchTime > debounceDelay)
@@ -2895,7 +2897,7 @@ void displayMainPage()
     // Update the time from NTP
     timeClient.update();
     unixtime = timeClient.getEpochTime(); // Get the current UNIX timestamp
-                                          // for debugging   
+                                          // for debugging
     int deltaHour = 0;
     int deltaMin = 0;
     unixtime = unixtime + deltaHour * 3600 + deltaMin * 60;
@@ -2936,64 +2938,95 @@ void displayMainPage()
     displayLongitude(sat.satLon, 320, startYmain + deltaY, TFT_GOLD, refresh);
     displayLTLEage(startYmain + 2 * deltaY, refresh);
 
-    int shifting = 50;
     int lowerBannerY = 295;
 
     // Managing the bottom banner
-
-    // tft.setCursor(shifting, lowerBannerY);
-    // tft.print("                                ");
-    // delay(5000);
+    // XXXXXXX
     if (sat.satEl < 0)
     {
-        if (first_time_above == true || refresh == true)
+        int shifting = 50;
+        if (first_time_below == true || refresh == true) //        first_time_above = true;
         {
-            tft.fillRect(0, 295, 480, 50, TFT_BLACK);
+            tft.fillRect(0, 295, 480, 50, TFT_BLACK); // clear entire area
             tft.setCursor(shifting, lowerBannerY);
             tft.setTextColor(TFT_CYAN);
             tft.print("Next Pass in ");
             tft.setCursor(tft.textWidth("Next pass in 00:00:00 ") + shifting, lowerBannerY);
             tft.print("at ");
             tft.print(formatTimeOnly(nextPassStart, true));
-            first_time_above = false;
-            first_time_below = true;
-        }
-
-        displayNextPassTime(nextPassStart - unixtime, shifting, lowerBannerY, TFT_CYAN, refresh);
-    }
-    else
-    {
-        if (first_time_below == true || refresh == true)
-        {
-            tft.setCursor(shifting, lowerBannerY);
-            tft.fillRect(0, 295, 480, 50, TFT_BLACK);
+            displayNextPassTime(nextPassStart - unixtime, shifting, lowerBannerY, TFT_CYAN, refresh);
             first_time_below = false;
-            first_time_above = true;
         }
-
-        unsigned long timeRemaining = nextPassEnd - unixtime; // Calculate the difference
-        displayRemainingPassTime(timeRemaining, 60, lowerBannerY, TFT_CYAN, refresh);
+        // tft.fillRect(0, 295, 480, 50, TFT_BLACK);
+        tft.setCursor(shifting, lowerBannerY);
+        // tft.fillRect(0, 295, 480, 50, TFT_BLACK);
+        displayNextPassTime(nextPassStart - unixtime, shifting, lowerBannerY, TFT_CYAN, refresh);
+        first_time_above = true;
+        refresh = false;
     }
+
+    if (sat.satEl > 0)
+    {
+        int shifting = 40;
+        if (first_time_above == true || refresh == true) //        first_time_above = true;
+        {
+            tft.fillRect(0, 295, 480, 50, TFT_BLACK);
+            tft.setCursor(shifting, lowerBannerY);
+            tft.setTextColor(TFT_CYAN);
+            tft.print("Satellite is above horizon for");
+            tft.setCursor(shifting, lowerBannerY);
+            // displayNextPassTime(nextPassEnd - unixtime, shifting, lowerBannerY, TFT_CYAN, refresh);
+            first_time_above = false;
+        }
+        // tft.fillRect(0, 295, 480, 50, TFT_BLACK);
+        // tft.setCursor(400, lowerBannerY);
+        
+        int tmpX=tft.textWidth("Satellite is above horizon for ")+shifting;
+        tft.fillRect(tmpX, 295, 480-shifting, 50, TFT_BLACK);
+        tft.setCursor(tmpX, lowerBannerY);
+        tft.setTextColor(TFT_CYAN);
+        tft.print(displayRemainingVisibleTimeinMMSS(nextPassEnd - unixtime));
+
+        // tft.fillRect(0, 295, 480, 50, TFT_BLACK);
+        // displayNextPassTime(nextPassEnd - unixtime, shifting, lowerBannerY, TFT_CYAN, refresh);
+        first_time_below = true;
+        refresh = false;
+    }
+
+  
 
     /*
-    Serial.println(formatTime(unixtime));
-    Serial.print("Azimuth = ");
-    Serial.print(sat.satAz, 2);
-    Serial.print("°, Elevation = ");
-    Serial.print(sat.satEl, 2);
-    Serial.print("°, Distance = ");
-    Serial.print(sat.satDist, 2);
-    Serial.println(" km");
-  */
-    Serial.print("Latitude = ");
-    Serial.print(sat.satLat, 2);
-    Serial.print("°, Longitude = ");
-    Serial.print(sat.satLon, 2);
-    Serial.print("°, Altitude = ");
-    Serial.print(sat.satAlt, 2);
-    Serial.println(" km");
+            else
+            {
 
-    refresh = false;
+                tft.setCursor(shifting, lowerBannerY);
+                tft.fillRect(0, 295, 480, 50, TFT_BLACK);
+                first_time_below = false;
+                Serial.print("Do nothing");
+
+                unsigned long timeRemaining = nextPassEnd - unixtime; // Calculate the difference
+                displayRemainingPassTime(timeRemaining, 60, lowerBannerY, TFT_CYAN, refresh);
+            }
+
+            /*
+            Serial.println(formatTime(unixtime));
+            Serial.print("Azimuth = ");
+            Serial.print(sat.satAz, 2);
+            Serial.print("°, Elevation = ");
+            Serial.print(sat.satEl, 2);
+            Serial.print("°, Distance = ");
+            Serial.print(sat.satDist, 2);
+            Serial.println(" km");
+
+            Serial.print("Latitude = ");
+            Serial.print(sat.satLat, 2);
+            Serial.print("°, Longitude = ");
+            Serial.print(sat.satLon, 2);
+            Serial.print("°, Altitude = ");
+            Serial.print(sat.satAlt, 2);
+            Serial.println(" km");
+
+        */
 }
 
 void displayRemainingPassTime(unsigned long durationInSec, int x, int y, uint16_t color, bool refresh)
@@ -3140,6 +3173,22 @@ void displayNextPassTime(unsigned long durationInSec, int x, int y, uint16_t col
     }
     Serial.println();
 }
+
+String displayRemainingVisibleTimeinMMSS(int delta) {
+    // Ensure delta does not exceed 60 minutes
+    delta = constrain(delta, 0, 3600);
+
+    // Calculate minutes and seconds
+    int minutes = delta / 60;
+    int seconds = delta % 60;
+
+    // Format as MM:SS
+    char buffer[6]; // Buffer to hold the formatted string
+    snprintf(buffer, sizeof(buffer), "%02d:%02d", minutes, seconds);
+
+    return String(buffer); // Return as String
+}
+
 
 void computeSun()
 {

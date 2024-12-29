@@ -4,8 +4,8 @@
 #include <stdint.h> // Include this for uint16_t and other fixed-width integer types
 
 // Version Info
-const char* VERSION_NUMBER = "Beta 0";
-const char* VERSION_DATE = "01.12.24";
+const char* VERSION_NUMBER = "Ver 1.0";
+const char* VERSION_DATE = "29.12.24";
 
 
 // Wi-Fi configuration
@@ -19,7 +19,7 @@ const char* WIFI_PASSWORD_ALT  = "Nestle2010Nestle";
 // API configuration
 // TimeZoneDB is a free service that provides a comprehensive time zone database for cities worldwide. 
 // get yours here https://timezonedb.com/
-const char* TIMEZONE_API_KEY = "ELALBIREH7POYI19YHB";
+const char* TIMEZONE_API_KEY = "EH7POYI19YHB";
 
 
 // Observer location
@@ -33,6 +33,10 @@ constexpr uint16_t SEVEN_DIGIT_COLOR = 0xFEA0;
 
 // Display option
 const bool DISPLAY_ISS_CREW = true;
+
+
+// Touch screen detectipn treshold (increase if pages are scrolling without pressing the TFT)
+const int touchTreshold =500;
 
 /* Predefined Colors in RGB565 format
  TFT_BLACK       0x0000  // Black
