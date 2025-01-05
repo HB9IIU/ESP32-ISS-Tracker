@@ -6,6 +6,16 @@ This project is an **ESP32-based tracking system for the International Space Sta
 The system provides detailed information about ISS passes, including **Acquisition of Signal (AOS)**, **Time of Closest Approach (TCA)**, and **Loss of Signal (LOS)**. The data is displayed on a **480x320 TFT screen** with a touchscreen interface, offering **clear and informative visualizations** such as polar plots, azimuth/elevation graphs, and satellite footprint maps. 
 
 This project highlights how much capability can be packed into an ESP32, handling computationally intensive tasks while remaining compact and efficient.
+---
+### **<span style="color:red;">NEW VERSION 2025</span>**
+
+With the support of those who decided to build the unit (thank you Joël, Paul, and John), several bugs have been fixed in this latest version. Along with these fixes, the following major improvements have been introduced:
+
+1. **Enhanced Satellite Tracking:** The system can now track any existing satellite by specifying its catalogue number in the `config.h` file.
+2. **Audio Notifications:** Added an output for a buzzer on pin 21 (configurable) to notify users of upcoming AOS, TCA, and LOS. This feature can be enabled or disabled by tapping on a speaker icon on the TFT screen.
+3. **WebSocket Output:** Implemented WebSocket output to enable communication with a separate unit for controlling an azimuth/elevation rotor.
+
+Additionally, TLE management has been improved, and the NTP server time synchronization has been optimized for better accuracy and reliability.
 
 ---
 ### Demo
