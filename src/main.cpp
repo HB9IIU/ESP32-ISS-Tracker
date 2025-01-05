@@ -10,14 +10,15 @@
 #include <Sgp4.h>
 #include <PNGdec.h>      // Include the PNG decoder library // https://notisrac.github.io/FileToCArray/
 #include "fancySplash.h" // Image is stored here in an 8-bit array
-#include "worldMap.h"    // Image is stored here in an 8-bit array
+//#include "worldMapLigth.h"    // Light Map
+#include "worldMapDark.h"    // Dark Map
 #include "expedition72.h"
 #include <HB9IIU7segFonts.h> //  https://rop.nl/truetype2gfx/   https://fontforge.org/en-US/
 #include <WebSocketsServer.h>
 
 // Version Info
 const char *VERSION_NUMBER = "Perpetual Beta";
-const char *VERSION_DATE = "02.01.25";
+const char *VERSION_DATE = "05.01.25";
 
 // TFT setup
 TFT_eSPI tft = TFT_eSPI();
