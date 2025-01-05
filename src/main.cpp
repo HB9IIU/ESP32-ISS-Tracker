@@ -1,5 +1,5 @@
-#include "myconfig.h"
-//#include "config.h"
+//#include "myconfig.h"
+#include "config.h"
 #include <Preferences.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -8,16 +8,16 @@
 #include <ArduinoJson.h>
 #include <TFT_eSPI.h>
 #include <Sgp4.h>
-#include <PNGdec.h> // Include the PNG decoder library // https://notisrac.github.io/FileToCArray/
+#include <PNGdec.h>      // Include the PNG decoder library // https://notisrac.github.io/FileToCArray/
 #include "fancySplash.h" // Image is stored here in an 8-bit array
-#include "worldMap.h"       // Image is stored here in an 8-bit array
+#include "worldMap.h"    // Image is stored here in an 8-bit array
 #include "expedition72.h"
 #include <HB9IIU7segFonts.h> //  https://rop.nl/truetype2gfx/   https://fontforge.org/en-US/
 #include <WebSocketsServer.h>
 
 // Version Info
-const char* VERSION_NUMBER = "Perpetual Beta";
-const char* VERSION_DATE = "02.01.25";
+const char *VERSION_NUMBER = "Perpetual Beta";
+const char *VERSION_DATE = "02.01.25";
 
 // TFT setup
 TFT_eSPI tft = TFT_eSPI();
@@ -28,7 +28,6 @@ Sgp4 sat;
 // WebSocket server on port 4235
 int websocketPort = 4235;
 WebSocketsServer webSocket = WebSocketsServer(websocketPort);
-
 
 // Configuration
 const unsigned long TLEupdateFrequencyInHours = 5; // Update threshold in seconds (10 hours)
@@ -394,7 +393,6 @@ void getTimezoneData()
         ESP.restart();
     }
 }
-
 bool syncTimeFromNTP(bool displayOnTFT)
 {
     logWithBoxFrame("Connecting to NTP Servers for Time Synchronization");
@@ -511,7 +509,6 @@ bool syncTimeFromNTP(bool displayOnTFT)
     delay(5000);  // Wait before trying again
     return false; // Indicate failure
 }
-
 void displayPExpedition72image()
 {
     // https://notisrac.github.io/FileToCArray/
@@ -529,7 +526,6 @@ void displayPExpedition72image()
         tft.endWrite();
     }
 }
-
 String determineTLEage(String line1charArray)
 {
     time_t tleEpochUnix = 0;
@@ -3008,7 +3004,7 @@ void setup()
 {
     if (DEBUG_ON_TFT)
     {
-        bootingMessagePause = 5000;
+        bootingMessagePause = 1000;
     }
     Serial.begin(115200);
     initializeTFT();
