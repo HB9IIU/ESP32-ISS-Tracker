@@ -8,6 +8,7 @@ The system provides detailed information about ISS passes, including **Acquisiti
 This project highlights how much capability can be packed into an ESP32, handling computationally intensive tasks while remaining compact and efficient.
 
 ---
+
 ### **<span style="color:red;">NEW VERSION 2025</span>**
 
 With the support of those who decided to build the unit (thank you Joël, Paul, and John), several bugs have been fixed in this latest version. Along with these fixes, the following major improvements have been introduced:
