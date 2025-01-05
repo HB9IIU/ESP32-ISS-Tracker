@@ -1,4 +1,5 @@
-#include "config.h"
+#include "myconfig.h"
+//#include "config.h"
 #include <Preferences.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -7,13 +8,16 @@
 #include <ArduinoJson.h>
 #include <TFT_eSPI.h>
 #include <Sgp4.h>
-#include <PNGdec.h> // Include the PNG decoder library
-// https://notisrac.github.io/FileToCArray/
-#include "ISSsplashImage.h" // Image is stored here in an 8-bit array
+#include <PNGdec.h> // Include the PNG decoder library // https://notisrac.github.io/FileToCArray/
+#include "fancySplash.h" // Image is stored here in an 8-bit array
 #include "worldMap.h"       // Image is stored here in an 8-bit array
 #include "expedition72.h"
 #include <HB9IIU7segFonts.h> //  https://rop.nl/truetype2gfx/   https://fontforge.org/en-US/
 #include <WebSocketsServer.h>
+
+// Version Info
+const char* VERSION_NUMBER = "Perpetual Beta";
+const char* VERSION_DATE = "02.01.25";
 
 // TFT setup
 TFT_eSPI tft = TFT_eSPI();

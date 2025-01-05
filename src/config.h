@@ -3,18 +3,13 @@
 #define CONFIG_H
 #include <stdint.h> // Include this for uint16_t and other fixed-width integer types
 
-// Version Info
-const char* VERSION_NUMBER = "Perpetual Beta";
-const char* VERSION_DATE = "02.01.25";
-
-
 // Wi-Fi configuration
-const char* WIFI_SSID = "MESH";
-const char* WIFI_PASSWORD = "Nestle2010Nestle";
+const char* WIFI_SSID = "your-ssid";
+const char* WIFI_PASSWORD = "your-password";
 
 // Alternative AP
-const char* WIFI_SSID_ALT = "NO WIFI FOR YOU!!!";
-const char* WIFI_PASSWORD_ALT  = "Nestle2010Nestle";
+const char* WIFI_SSID_ALT = "your-alternative-ssid";
+const char* WIFI_PASSWORD_ALT  = "your-password-for-alternative-ssid";
 
 
 // Satellite Catalogue Numbers
@@ -62,22 +57,18 @@ int satelliteCatalogueNumber = 25544; // ISS (International Space Station)
 // API configuration
 // TimeZoneDB is a free service that provides a comprehensive time zone database for cities worldwide. 
 // get yours here https://timezonedb.com/
-const char* TIMEZONE_API_KEY = "EH7POYI19YHB";
+const char* TIMEZONE_API_KEY = "your-timezone-API-key";
 
 
 // Observer location
-const double OBSERVER_LATITUDE = 46.4666463;
-const double OBSERVER_LONGITUDE = 6.8615008;
+const double OBSERVER_LATITUDE = 46.2044;
+const double OBSERVER_LONGITUDE = 6.1432;
 const double OBSERVER_ALTITUDE = 500.0;
 
-
-// Touch screen detectipn treshold (increase if pages are scrolling without pressing the TFT)
-//const int touchTreshold =900;
 
 // Buzzer notifications; set seconds before next pass, or 0 for none
 const int beepsNotificationBeforeAOSandLOS=15;
 bool notificationAtTCA=true;
-
 
 
 // Digital clock style
@@ -85,11 +76,12 @@ constexpr bool display7DigisStyleClock = true;
 constexpr uint16_t clockDigitsColor = 0xFEA0;
 
 // Display option
-const bool DISPLAY_ISS_CREW = false;
+const bool DISPLAY_ISS_CREW = true;
 
 // duration of booting messages in ms
 int bootingMessagePause = 1000; // for TFT messages at boot
 
+bool DEBUG_ON_TFT = false; // provides a bit more time to read messages at start-up 
 
 
 
@@ -115,10 +107,5 @@ int bootingMessagePause = 1000; // for TFT messages at boot
  TFT_GREENYELLOW 0xAFE5  // Green-Yellow
  TFT_PINK        0xF81F  // Pink (alias for Magenta)
 */
-
-bool DEBUG_ON_TFT = true; // provides a bit more time to read messages at start-up 
-
-// Display configuration
-//const double MIN_ELEVATION = 0;
 
 #endif 
