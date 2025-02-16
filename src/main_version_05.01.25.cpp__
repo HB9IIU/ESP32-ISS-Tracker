@@ -1,5 +1,5 @@
 #include "myconfig.h"
-// #include "config.h"
+//#include "config.h"
 #include <Preferences.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -10,15 +10,15 @@
 #include <Sgp4.h>
 #include <PNGdec.h>      // Include the PNG decoder library // https://notisrac.github.io/FileToCArray/
 #include "fancySplash.h" // Image is stored here in an 8-bit array
-// #include "worldMapLigth.h"    // Light Map
-#include "worldMapDark.h" // Dark Map
+//#include "worldMapLigth.h"    // Light Map
+#include "worldMapDark.h"    // Dark Map
 #include "expedition72.h"
 #include <HB9IIU7segFonts.h> //  https://rop.nl/truetype2gfx/   https://fontforge.org/en-US/
 #include <WebSocketsServer.h>
 
 // Version Info
 const char *VERSION_NUMBER = "Perpetual Beta";
-const char *VERSION_DATE = "16.01.25";
+const char *VERSION_DATE = "05.01.25";
 
 // TFT setup
 TFT_eSPI tft = TFT_eSPI();
@@ -824,7 +824,6 @@ void displayMainPage()
     displayOrbitNumber(orbitNumber, 25, startYmain + 2 * deltaY, TFT_GOLD, refreshBecauseReturningFromOtherPage);
     displayLatitude(sat.satLat, 320, startYmain, TFT_GOLD, refreshBecauseReturningFromOtherPage);
     displayLongitude(sat.satLon, 320, startYmain + deltaY, TFT_GOLD, refreshBecauseReturningFromOtherPage);
-
     displayLTLEage(startYmain + 2 * deltaY, refreshBecauseReturningFromOtherPage);
 
     // Managing the bottom banner
@@ -1384,7 +1383,7 @@ void displayAltitude(int number, int x, int y, uint16_t color, bool refreshBecau
 void displayLTLEage(int y, bool refreshBecauseReturningFromOtherPage)
 {
     static bool isInitiated = false;
-    static String previousTLEelementsAge;
+
     if (!isInitiated || refreshBecauseReturningFromOtherPage)
     {
         tft.setTextFont(4);
@@ -1394,22 +1393,8 @@ void displayLTLEage(int y, bool refreshBecauseReturningFromOtherPage)
         tft.print("TLE age:");
         tft.setCursor(388, y);
         tft.print(TLEelementsAge);
-        previousTLEelementsAge = determineTLEage(TLEline1CharArray);
         isInitiated = true;
     }
-    TLEelementsAge = determineTLEage(TLEline1CharArray);
-    if (TLEelementsAge != previousTLEelementsAge)
-    {
-        tft.setTextFont(4);
-        tft.setTextSize(1);
-        tft.setTextColor(TFT_BLACK);
-        tft.setCursor(388, y);
-        tft.print(previousTLEelementsAge);
-        tft.setCursor(388, y);
-        tft.setTextColor(TFT_GOLD);
-        tft.print(TLEelementsAge);
-    }
-    previousTLEelementsAge = TLEelementsAge;
 }
 void displayClassicClock()
 {
@@ -3020,7 +3005,7 @@ void setup()
 {
     if (DEBUG_ON_TFT)
     {
-        bootingMessagePause = 3000;
+        bootingMessagePause = 1000;
     }
     Serial.begin(115200);
     initializeTFT();
