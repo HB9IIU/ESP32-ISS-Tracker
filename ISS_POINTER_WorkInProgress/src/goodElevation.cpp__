@@ -1,0 +1,173 @@
+#include <Arduino.h>
+#include <Stepper.h>
+
+const int stepsPerRevolution = 2048;  // Adjust this according to your stepper motor's specs
+int azimuthStepperCurrentPosition = 0;  // Variable to track the current azimuth position
+int elevationStepperCurrentPosition = 0; // Variable to track the current elevation position
+
+// ULN2003 Motor Driver Pins for Azimuth
+#define IN1azimuth 19
+#define IN2azimuth 18
+#define IN3azimuth 23
+#define IN4azimuth 22
+
+// ULN2003 Motor Driver Pins for Elevation
+#define IN1elevation 13
+#define IN2elevation 12
+#define IN3elevation 2
+#define IN4elevation 4
+
+
+
+
+// Initialize the stepper library
+Stepper AzimuthStepper(stepsPerRevolution, IN1azimuth, IN3azimuth, IN2azimuth, IN4azimuth);
+Stepper ElevationStepper(stepsPerRevolution, IN1elevation, IN3elevation, IN2elevation, IN4elevation);
+
+void AzimuthStepperGotoAngle(int angle);
+void ElevationStepperGotoAngle(int angle);
+
+
+void setup() {
+  // Set the speed at 10 rpm for the azimuth motor
+  AzimuthStepper.setSpeed(10);
+  
+  // Initialize the serial port
+  Serial.begin(115200);
+
+
+
+  elevationStepperCurrentPosition =800;
+  ElevationStepperGotoAngle(0);
+  elevationStepperCurrentPosition = 0;
+  ElevationStepperGotoAngle(37);
+  elevationStepperCurrentPosition = 0;
+  delay(2000);
+
+}
+
+void loopA() {
+  
+  
+  
+  // Moving from 0° to 359° in 1-degree steps
+  for (int angle = 0; angle < 360; angle++) {
+    AzimuthStepperGotoAngle(angle);
+    delay(5);  // Wait for 0.5 seconds at each position
+  }
+
+  // Moving back to 0° in one go
+  AzimuthStepperGotoAngle(0);
+  delay(5000);  // Wait for 5 seconds at position 0 before starting the next cycle
+}
+
+
+void loop() {
+  
+  
+  // Moving from 0° to 90° in 1-degree steps (for elevation)
+  for (int angle = 0; angle <= 90; angle++) {
+    ElevationStepperGotoAngle(angle);
+    delay(25);  // Wait for 0.1 seconds at each position
+  }
+delay(2000);
+ElevationStepperGotoAngle(60);
+delay(1000);
+ElevationStepperGotoAngle(30);
+delay(1000);
+ElevationStepperGotoAngle(0);
+delay(1000);
+ 
+}
+
+
+
+
+
+
+// Function to move the azimuth stepper to the desired angle (0-360°)
+void AzimuthStepperGotoAngle(int angle) {
+  // Ensure the angle is within 0-360°
+  angle = constrain(angle, 0, 359); // Valid angle range is 0 to 359
+
+  int newpos;
+
+  // For angles 0° to 180°, calculate the position linearly
+  if (angle >= 0 && angle <= 180) {
+    // Linear mapping to position from 0 to 1024
+    newpos = map(angle, 0, 180, 0, 1024);
+  }
+  // For angles 180° to 360°, calculate the position linearly but decreasing
+  else {
+    // Linear mapping from 1024 to 0, negative values are mirrored
+    newpos = map(angle, 180, 360, -1024, 0);
+  }
+
+  // Calculate the number of steps needed to reach the target position from the current position
+  int stepsToMove = newpos - azimuthStepperCurrentPosition;
+  Serial.print("Stepd to move ");
+  Serial.println(stepsToMove);
+
+  
+
+  if (abs(stepsToMove) > 10) {
+    AzimuthStepper.setSpeed(20);
+
+
+} else {
+    AzimuthStepper.setSpeed(1);
+
+
+}
+
+
+  // Move the stepper to the target position
+  AzimuthStepper.step(stepsToMove);
+
+  // Update the current position
+  azimuthStepperCurrentPosition = newpos;
+
+  // Print the movement details
+  Serial.print("Azimuth Moved to ");
+  Serial.print(angle);
+  Serial.print(" degrees, Current Position: ");
+  Serial.println(azimuthStepperCurrentPosition);
+}
+
+
+
+// Function to move the elevation stepper to the desired angle (0-90°)
+void ElevationStepperGotoAngle(int angle) {
+  // Ensure the angle is within 0-90°
+  angle = constrain(angle, 0, 90); // Valid angle range is 0 to 90
+
+  int newpos;
+
+  // For angles 0° to 90°, calculate the position linearly
+  if (angle >= 0 && angle <= 90) {
+    // Linear mapping to position from 0 to 512, i.e 2048/4
+    newpos = map(angle, 0, 90, 0, 512);
+  }
+
+  // Calculate the number of steps needed to reach the target position from the current position
+  int stepsToMove = newpos - elevationStepperCurrentPosition;
+
+  // Adjust speed based on the number of steps to move
+  if (abs(stepsToMove) > 10) {
+    ElevationStepper.setSpeed(10);  // Faster speed for large movements
+  } else {
+    ElevationStepper.setSpeed(1);   // Slower speed for small movements
+  }
+
+  // Move the stepper to the target position
+  ElevationStepper.step(stepsToMove);
+
+  // Update the current position
+  elevationStepperCurrentPosition = newpos;
+
+  // Print the movement details
+  Serial.print("Elevation Moved to ");
+  Serial.print(angle);
+  Serial.print(" degrees, Current Position: ");
+  Serial.println(elevationStepperCurrentPosition);
+}
