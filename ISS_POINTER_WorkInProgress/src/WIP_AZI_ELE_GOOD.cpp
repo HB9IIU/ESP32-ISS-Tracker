@@ -12,11 +12,10 @@ int elevationStepperCurrentPosition = 0; // Variable to track the current elevat
 #define IN4azimuth 22
 
 // ULN2003 Motor Driver Pins for Elevation
-#define IN1elevation 13
-#define IN2elevation 12
-#define IN3elevation 2
-#define IN4elevation 4
-
+#define IN1elevation 13  // Swapped with IN2elevation
+#define IN2elevation 12  // Swapped with IN1elevation
+#define IN3elevation 4   // Swapped with IN4elevation
+#define IN4elevation 2   // Swapped with IN3elevation
 
 
 
@@ -35,30 +34,19 @@ void setup() {
   // Initialize the serial port
   Serial.begin(115200);
 
+ ElevationStepper.setSpeed(10);
+ ElevationStepper.step(-1024-10);
+ elevationStepperCurrentPosition = 0;
+ ElevationStepperGotoAngle(37);
+ elevationStepperCurrentPosition = 0;
 
 
-  elevationStepperCurrentPosition =800;
-  ElevationStepperGotoAngle(0);
-  elevationStepperCurrentPosition = 0;
-  ElevationStepperGotoAngle(37);
-  elevationStepperCurrentPosition = 0;
-  delay(2000);
 
-}
-
-void loopA() {
-  
-  
-  
-  // Moving from 0° to 359° in 1-degree steps
-  for (int angle = 0; angle < 360; angle++) {
-    AzimuthStepperGotoAngle(angle);
-    delay(5);  // Wait for 0.5 seconds at each position
-  }
-
-  // Moving back to 0° in one go
-  AzimuthStepperGotoAngle(0);
-  delay(5000);  // Wait for 5 seconds at position 0 before starting the next cycle
+AzimuthStepper.setSpeed(15);
+AzimuthStepper.step(2048+50); //1 full turn +10 to be sure with hit the mechanical limit
+AzimuthStepper.step(-2048/2); //going to North, half turn
+azimuthStepperCurrentPosition=0;
+delay(1000);
 }
 
 
@@ -66,11 +54,15 @@ void loop() {
   
   
   // Moving from 0° to 359° in 1-degree steps
-  for (int angle = 0; angle < 360; angle++) {
-    AzimuthStepperGotoAngle(angle);
+  for (int azimuthAngle = 0; azimuthAngle < 360; azimuthAngle++) {
+    AzimuthStepperGotoAngle(azimuthAngle);
   // Elevation calculation: sin(angle * PI / 180) gives the sine value for the angle
-  float elevationAngle = sin(PI / 360 * angle)*90;
+  float elevationAngle = sin(PI / 360 * azimuthAngle)*90;
   ElevationStepperGotoAngle(elevationAngle);
+  Serial.print("Azimuth: ");
+  Serial.print(azimuthAngle);
+  Serial.println("°");
+
 
     //delay(5);  // Wait for 0.5 seconds at each position
   }
@@ -105,15 +97,15 @@ void AzimuthStepperGotoAngle(int angle) {
 
   // Calculate the number of steps needed to reach the target position from the current position
   int stepsToMove = newpos - azimuthStepperCurrentPosition;
-
+  Serial.print("Step to move ");
+  Serial.println(stepsToMove);
 
   if (abs(stepsToMove) > 10) {
-    AzimuthStepper.setSpeed(20);
+    AzimuthStepper.setSpeed(15);
 
 
 } else {
-    AzimuthStepper.setSpeed(1);
-
+    AzimuthStepper.setSpeed(4);
 
 }
 

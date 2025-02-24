@@ -5,10 +5,10 @@ const int stepsPerRevolution = 2048;  // Adjust this according to your stepper m
 int azimuthStepperCurrentPosition = 0;  // Variable to track the current azimuth position
 
 // ULN2003 Motor Driver Pins for Azimuth
-#define IN1azimuth 19
-#define IN2azimuth 18
-#define IN3azimuth 23
-#define IN4azimuth 22
+#define IN1azimuth 12
+#define IN2azimuth 13
+#define IN3azimuth 14
+#define IN4azimuth 15
 
 // Initialize the stepper library
 Stepper AzimuthStepper(stepsPerRevolution, IN1azimuth, IN3azimuth, IN2azimuth, IN4azimuth);
@@ -17,7 +17,7 @@ void AzimuthStepperGotoAngle(int angle);
 
 void setup() {
   // Set the speed at 10 rpm for the azimuth motor
-  AzimuthStepper.setSpeed(10);
+  AzimuthStepper.setSpeed(20);
   
   // Initialize the serial port
   Serial.begin(115200);
@@ -27,7 +27,7 @@ void loop() {
   // Moving from 0° to 359° in 1-degree steps
   for (int angle = 0; angle < 360; angle++) {
     AzimuthStepperGotoAngle(angle);
-    delay(5);  // Wait for 0.5 seconds at each position
+    delay(0);  // Wait for 0.5 seconds at each position
   }
 
   // Moving back to 0° in one go
@@ -55,7 +55,7 @@ void AzimuthStepperGotoAngle(int angle) {
 
   // Calculate the number of steps needed to reach the target position from the current position
   int stepsToMove = newpos - azimuthStepperCurrentPosition;
-  Serial.print("Stepd to move ");
+  //Serial.print("Stepd to move ");
   Serial.println(stepsToMove);
 
   
