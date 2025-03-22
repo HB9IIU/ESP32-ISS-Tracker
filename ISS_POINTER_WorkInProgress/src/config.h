@@ -8,7 +8,7 @@ const char* password = "Nestle2010Nestle";
 
 // WebSocket server details
 
-const char* websocket_host = "192.168.0.50";
+const char* websocket_host = "192.168.0.184";
 const uint16_t websocket_port = 4235;
 
 

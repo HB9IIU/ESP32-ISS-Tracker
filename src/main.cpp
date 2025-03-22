@@ -18,7 +18,7 @@
 
 // Version Info
 const char *VERSION_NUMBER = "Perpetual Beta";
-const char *VERSION_DATE = "16.01.25";
+const char *VERSION_DATE = "22.03.25";
 
 // TFT setup
 TFT_eSPI tft = TFT_eSPI();
