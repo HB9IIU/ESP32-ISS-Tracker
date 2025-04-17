@@ -18,7 +18,7 @@
 
 // Version Info
 const char *VERSION_NUMBER = "Perpetual Beta";
-const char *VERSION_DATE = "18.04.25";
+const char *VERSION_DATE = "22.03.25";
 
 // TFT setup
 TFT_eSPI tft = TFT_eSPI();
@@ -341,9 +341,6 @@ void getTimezoneData()
                     Serial.println(dstOffset);
                     Serial.print("Total time offset (seconds): ");
                     Serial.println(totalTimeOffset);
-
-
-
                     TFTprint("Timezone data retrieved successfully!", TFT_GREEN);
                     TFTprint("");
 
@@ -560,14 +557,14 @@ String determineTLEage(String line1charArray)
 
     char ageFormatted[50];
     sprintf(ageFormatted, "%lu day(s), %lu hour(s), %lu minute(s)", ageInDays, ageInHours, ageInMinutes);
-    //Serial.print("TLE Age: ");
-    //Serial.print(String(ageFormatted));
+    Serial.print("TLE Age: ");
+    Serial.print(String(ageFormatted));
     unsigned long totalHours = ageInSeconds / 3600;          // Total hours (can exceed 24)
     unsigned long totalMinutes = (ageInSeconds % 3600) / 60; // Remaining minutes
-    //Serial.printf(" ,i.e. ");
+    Serial.printf(" ,i.e. ");
     char ageHHMM[10];                                        // Buffer to hold the formatted string
     sprintf(ageHHMM, "%lu:%02lu", totalHours, totalMinutes); // Format hours and minutes
-    //Serial.println(String(ageHHMM));
+    Serial.println(String(ageHHMM));
     return String(ageHHMM);
 }
 void connectToWiFi()
@@ -1759,6 +1756,7 @@ void calculateNextPass()
     {
         int year, month, day, hour, minute;
         double second;
+        bool daylightSaving = false;
 
         invjday(overpass.jdstart, 0, false, year, month, day, hour, minute, second);
 
@@ -2424,6 +2422,7 @@ void displayTableNext10Passes()
 
     int year, month, day, hour, minute;
     double second;
+    bool daylightSaving = true;
 
     // Clear the TFT and set up the screen
     tft.fillScreen(TFT_BLACK);
@@ -2446,6 +2445,7 @@ void displayTableNext10Passes()
 
     // Adjust timezone and DST offset
     long adjustedTimezoneOffset = totalTimeOffset; // Correctly adjust for DST and timezone offset
+                    adjustedTimezoneOffset = timezoneOffset + dstOffset;
 
     // Iterate through the next 10 passes
     for (int i = 1; i <= 12; i++) // Loop for next 12 passes (as per your original code)
@@ -2457,7 +2457,7 @@ void displayTableNext10Passes()
             struct tm aosTm = {0}, tcaTm = {0}, losTm = {0};
 
             // Convert AOS: Acquisition of Signal
-            invjday(overpass.jdstart, adjustedTimezoneOffset / 3600, false, year, month, day, hour, minute, second);
+            invjday(overpass.jdstart, adjustedTimezoneOffset / 3600, daylightSaving, year, month, day, hour, minute, second);
             aosTm.tm_year = year - 1900;
             aosTm.tm_mon = month - 1;
             aosTm.tm_mday = day;
@@ -2465,7 +2465,7 @@ void displayTableNext10Passes()
             aosTm.tm_min = minute;
 
             // Convert TCA: Time of Closest Approach
-            invjday(overpass.jdmax, adjustedTimezoneOffset / 3600, false, year, month, day, hour, minute, second);
+            invjday(overpass.jdmax, adjustedTimezoneOffset / 3600, daylightSaving, year, month, day, hour, minute, second);
             tcaTm.tm_year = year - 1900;
             tcaTm.tm_mon = month - 1;
             tcaTm.tm_mday = day;
@@ -2473,7 +2473,7 @@ void displayTableNext10Passes()
             tcaTm.tm_min = minute;
 
             // Convert LOS: Loss of Signal
-            invjday(overpass.jdstop, adjustedTimezoneOffset / 3600, false, year, month, day, hour, minute, second);
+            invjday(overpass.jdstop, adjustedTimezoneOffset / 3600, daylightSaving, year, month, day, hour, minute, second);
             losTm.tm_year = year - 1900;
             losTm.tm_mon = month - 1;
             losTm.tm_mday = day;
@@ -3085,7 +3085,6 @@ void loop()
     // Synching time with NTP
     const unsigned long NTPsynchInterval = 1.5 * 3600 * 1000;          // every 1.5 hour
     static unsigned long previousMillisForNTPsynchInterval = millis(); // Store the last time the function was executed
-   
     // Check if the NTPsynchInterval has passed
     if (millis() - previousMillisForNTPsynchInterval >= NTPsynchInterval)
     {
@@ -3102,7 +3101,6 @@ void loop()
 
     // get new sat data
     sat.findsat(unixtime);
-   
     // calculate orbit number
     getOrbitNumber(unixtime);
 
@@ -3181,14 +3179,6 @@ void loop()
             {
 
                 touchCounter++; // Increment the counter
-                Serial.println("XXXXXXXXXXXXXXXXXXXXXXXXX");
-                Serial.print("touchCounter:");
-                Serial.println(touchCounter);
-
-
-
-                Serial.println("XXXXXXXXXXXXXXXXXXXXXXXXX");
-
                 // If counter exceeds 6, reset it to 1
                 if (touchCounter > 6)
                 {
@@ -3210,12 +3200,7 @@ void loop()
                         tft.fillScreen(TFT_BLACK);
                         refreshBecauseReturningFromOtherPage = true;
                         updateBigClock(true);
-                        page1Displayed = true; 
-                        page2Displayed = false;     
-                        page3Displayed = false;     
-                        page4Displayed = false;   
-                        page5Displayed = false;     
-                        page6Displayed = false;   
+                        page1Displayed = true; // Set the flag to prevent re-display
                     }
                     displayMainPage(); // Show page 1
                     break;
@@ -3224,12 +3209,8 @@ void loop()
                     {
                         displayAzElPlotPage();
                         AzElPlotlastRefreshTime = millis();
-                        page1Displayed = false; 
-                        page2Displayed = true;     
-                        page3Displayed = false;     
-                        page4Displayed = false;   
-                        page5Displayed = false;     
-                        page6Displayed = false;   
+                        page1Displayed = false; // Set the flag to prevent re-display
+                        page2Displayed = true;  // Set the flag to prevent re-display
                     }
                     break;
                 case 3:
@@ -3237,12 +3218,7 @@ void loop()
                     if (!page3Displayed)
                     {
                         displayPolarPlotPage();
-                        page1Displayed = false; 
-                        page2Displayed = false;     
-                        page3Displayed = true;     
-                        page4Displayed = false;   
-                        page5Displayed = false;     
-                        page6Displayed = false;                           
+                        page3Displayed = true; // Set the flag to prevent re-display
                         PolarPlotlastRefreshTime = millis();
                     }
                     break;
@@ -3250,24 +3226,14 @@ void loop()
                     if (!page4Displayed)
                     {
                         displayTableNext10Passes(); // Show page 3
-                        page1Displayed = false; 
-                        page2Displayed = false;     
-                        page3Displayed = false;     
-                        page4Displayed = true;   
-                        page5Displayed = false;     
-                        page6Displayed = false;   
+                        page4Displayed = true;      // Set the flag to prevent re-display
                     }
                     break;
                 case 5:
                     if (!page5Displayed)
                     {
                         displayMapWithMultiPasses(); // Show page 4
-                        page1Displayed = false; 
-                        page2Displayed = false;     
-                        page3Displayed = false;     
-                        page4Displayed = false;   
-                        page5Displayed = true;     
-                        page6Displayed = false;   
+                        page5Displayed = true;       // Set the flag to prevent re-display
                         multipassMaplastRefreshTime = millis();
                     }
                     break;
@@ -3278,12 +3244,8 @@ void loop()
                         if (DISPLAY_ISS_CREW == true)
                         {
                             displayPExpedition72image();
-                            page1Displayed = false; 
-                            page2Displayed = false;     
-                            page3Displayed = false;     
-                            page4Displayed = false;   
-                            page5Displayed = false;     
-                            page6Displayed = true;                           }
+                            page6Displayed = true; // Set the flag to prevent re-display
+                        }
                         else
                         {
                             touchCounter = 1;
