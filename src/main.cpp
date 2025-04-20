@@ -583,6 +583,8 @@ void connectToWiFi()
         {
             Serial.print("Connecting to primary Wi-Fi: ");
             Serial.println(WIFI_SSID);
+            WiFi.disconnect(true); // optional but clean
+            WiFi.setHostname("HB9IIU_SAT");
 
             String message = "Connecting to primary Wi-Fi: " + String(WIFI_SSID);
             TFTprint(message, TFT_YELLOW);
@@ -592,6 +594,9 @@ void connectToWiFi()
         {
             Serial.print("Connecting to alternative Wi-Fi: ");
             Serial.println(WIFI_SSID_ALT);
+            WiFi.disconnect(true); // optional but clean
+            WiFi.setHostname("HB9IIU_SAT");
+
             TFTprint("");
 
             String message = "Connecting to alternative Wi-Fi: " + String(WIFI_SSID_ALT);
@@ -650,6 +655,8 @@ void connectToWiFi()
     TFTprint("");
     TFTprint("Signal Strength: " + String(rssi) + " dBm", TFT_WHITE);
 }
+
+
 void getTLEelements(int catalogNumber)
 {
     logWithBoxFrame("Trying to retrieve stored TLE elements from flash memory");
