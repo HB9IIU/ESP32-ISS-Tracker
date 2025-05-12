@@ -81,11 +81,14 @@ constexpr bool display7DigisStyleClock = true;
 constexpr uint16_t clockDigitsColor = 0xFEA0;
 
 // Display option
-const bool DISPLAY_ISS_CREW = false;
+const bool DISPLAY_ISS_CREW = true;
 
 // duration of booting messages in ms
 int bootingMessagePause = 1000; // for TFT messages at boot
 
+//Automatic Page Change (true/false, duration between pages in ms)
+int autoPageChange = true;
+int durationBetweenPageChanges = 6000;
 
 
 
