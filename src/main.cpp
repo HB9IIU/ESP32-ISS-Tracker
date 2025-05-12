@@ -3030,7 +3030,7 @@ void setup()
     Serial.begin(115200);
     initializeTFT();
     initializeBuzzer();
-    displaySplashScreen(2500);
+    displaySplashScreen(4000);
     displayWelcomeMessage(2500);
     checkAndApplyTFTCalibrationData(false); // set true for forcing calibration
     displaySysInfo();
