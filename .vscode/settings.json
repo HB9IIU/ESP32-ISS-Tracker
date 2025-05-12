@@ -1,6 +1,0 @@
-{
-    "files.associations": {
-        "*.cpp__": "cpp"
-    },
-    "cmake.sourceDirectory": "/Users/danielstaempfli/SynologyDrive/ZZ_GITHUB_NEW/ESP32-ISS-Tracker/ISS_POINTER_WorkInProgress/lib/ArduinoJson/extras/fuzzing"
-}
