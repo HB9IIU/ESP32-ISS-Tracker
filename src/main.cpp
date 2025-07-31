@@ -3143,11 +3143,170 @@ void loop()
     static unsigned long AzElPlotlastRefreshTime = 0;
 
     // Get the current touch pressure
-    // int touchTFT = tft.getTouchRawZ();
+    int touchTFT = tft.getTouchRawZ();
     // Check if the touch pressure exceeds the threshold and debounce
-    // if (touchTFT > touchTreshold)
+    //if (touchTFT > touchTreshold)
     uint16_t tx, ty;
     // Serial.print(".");
+
+    if (tft.getTouch(&tx, &ty))
+    {
+        Serial.println();
+        Serial.print("x=");
+        Serial.print(tx);
+        Serial.print(" y=");
+        Serial.println(ty);
+
+        // Only increment the counter if enough time has passed since the last touch
+        if (millis() - lastTouchTime > debounceDelay)
+        {
+
+            if ((tx >= rectX && tx <= rectX + rectW && ty >= rectY && ty <= rectY + rectH) && touchCounter == 1)
+            {
+                if (speakerisON == true)
+                {
+                    ledcWriteTone(0, 2000); // Play 2.16kHz beep
+                    delay(200);
+                    ledcWriteTone(0, 0);
+                    drawSpeakerOFF(226, 130);
+                    speakerisON = false;
+                    // delay(600);
+                }
+                else
+                {
+                    ledcWriteTone(0, 2000); // Play 2.16kHz beep
+                    delay(200);
+                    ledcWriteTone(0, 0);
+                    speakerisON = true;
+                    drawSpeakerON(226, 130);
+                    // delay(600);
+                }
+            }
+            else
+            {
+
+                touchCounter++; // Increment the counter
+                Serial.println("XXXXXXXXXXXXXXXXXXXXXXXXX");
+                Serial.print("touchCounter:");
+                Serial.println(touchCounter);
+
+
+
+                Serial.println("XXXXXXXXXXXXXXXXXXXXXXXXX");
+
+                // If counter exceeds 6, reset it to 1
+                if (touchCounter > 6)
+                {
+                    touchCounter = 1;
+                    // Reset page display flags so that pages can be displayed again
+                    page1Displayed = false;
+                    page2Displayed = false;
+                    page3Displayed = false;
+                    page4Displayed = false;
+                    page5Displayed = false;
+                    page6Displayed = false;
+                }
+                // Call the respective functions based on the counter value
+                switch (touchCounter)
+                {
+                case 1:
+                    if (!page1Displayed)
+                    {
+                        tft.fillScreen(TFT_BLACK);
+                        refreshBecauseReturningFromOtherPage = true;
+                        updateBigClock(true);
+                        page1Displayed = true; 
+                        page2Displayed = false;     
+                        page3Displayed = false;     
+                        page4Displayed = false;   
+                        page5Displayed = false;     
+                        page6Displayed = false;   
+                    }
+                    displayMainPage(); // Show page 1
+                    break;
+                case 2:
+                    if (!page2Displayed)
+                    {
+                        displayAzElPlotPage();
+                        AzElPlotlastRefreshTime = millis();
+                        page1Displayed = false; 
+                        page2Displayed = true;     
+                        page3Displayed = false;     
+                        page4Displayed = false;   
+                        page5Displayed = false;     
+                        page6Displayed = false;   
+                    }
+                    break;
+                case 3:
+
+                    if (!page3Displayed)
+                    {
+                        displayPolarPlotPage();
+                        page1Displayed = false; 
+                        page2Displayed = false;     
+                        page3Displayed = true;     
+                        page4Displayed = false;   
+                        page5Displayed = false;     
+                        page6Displayed = false;                           
+                        PolarPlotlastRefreshTime = millis();
+                    }
+                    break;
+                case 4:
+                    if (!page4Displayed)
+                    {
+                        displayTableNext10Passes(); // Show page 3
+                        page1Displayed = false; 
+                        page2Displayed = false;     
+                        page3Displayed = false;     
+                        page4Displayed = true;   
+                        page5Displayed = false;     
+                        page6Displayed = false;   
+                    }
+                    break;
+                case 5:
+                    if (!page5Displayed)
+                    {
+                        displayMapWithMultiPasses(); // Show page 4
+                        page1Displayed = false; 
+                        page2Displayed = false;     
+                        page3Displayed = false;     
+                        page4Displayed = false;   
+                        page5Displayed = true;     
+                        page6Displayed = false;   
+                        multipassMaplastRefreshTime = millis();
+                    }
+                    break;
+
+                case 6:
+                    if (!page6Displayed)
+                    {
+                        if (DISPLAY_ISS_CREW == true)
+                        {
+                            displayPExpedition72image();
+                            page1Displayed = false; 
+                            page2Displayed = false;     
+                            page3Displayed = false;     
+                            page4Displayed = false;   
+                            page5Displayed = false;     
+                            page6Displayed = true;                           }
+                        else
+                        {
+                            touchCounter = 1;
+                            tft.fillScreen(TFT_BLACK);
+                            refreshBecauseReturningFromOtherPage = true;
+                            displayMainPage(); // Show page 1
+                        }
+                    }
+                    break;
+                }
+            }
+            lastTouchTime = millis(); // Update the time of the last touch
+        }
+    }
+
+
+
+
     static unsigned long lastAutoPageChangeTime = millis();
 
     if (autoPageChange && millis() - lastAutoPageChangeTime >= durationBetweenPageChanges)
@@ -3305,6 +3464,9 @@ void loop()
     //---------------------------------------------------------------------------------------------
     // Refresh logic  outside touch handling
     if (autoPageChange == false)
+
+
+
     {
         if (touchCounter == 2) // AZel Plot
         {
