@@ -17,7 +17,7 @@
 
 // Version Info
 const char *VERSION_NUMBER = "Perpetual Beta";
-const char *VERSION_DATE = "08.08.25";
+const char *VERSION_DATE = "12.05.25";
 
 // TFT setup
 TFT_eSPI tft = TFT_eSPI();
@@ -3505,9 +3505,9 @@ void loop()
     webSocket.loop();
 
     static unsigned long lastLoopTime = millis();
-    if (millis() - lastLoopTime >= 1000 )
+    if (millis() - lastLoopTime >= 1000 && touchCounter == 1)
     {
- 
+        displayMainPage();
 
         lastLoopTime = millis();
         String data = String("{\"satName\":\"") + sat.satName + "\"," +
