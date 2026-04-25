@@ -11,13 +11,13 @@
 #include <PNGdec.h>       // Include the PNG decoder library // https://notisrac.github.io/FileToCArray/ (select treat as binary)
 #include "fancySplash.h"  // Image is stored here in an 8-bit array
 #include "worldMapDark.h" // Dark Map
-#include "expedition74.h"
+#include "expedition73.h"
 #include <HB9IIU7segFonts.h> //  https://rop.nl/truetype2gfx/   https://fontforge.org/en-US/
 #include <WebSocketsServer.h>
 
 // Version Info
 const char *VERSION_NUMBER = "Perpetual Beta";
-const char *VERSION_DATE = "24.04.26";
+const char *VERSION_DATE = "08.08.25";
 
 // TFT setup
 TFT_eSPI tft = TFT_eSPI();
@@ -106,7 +106,7 @@ String formatWithSeparator(unsigned long number);
 void displayTableNext10Passes();
 void displayMapWithMultiPasses();
 void displayEquirectangularWorlsMap();
-void displayPExpeditionImage();
+void displayPExpedition72image();
 void calibrateTFTscreen();
 void checkAndApplyTFTCalibrationData(bool recalibrate);
 void drawSpeakerON(int x, int y);
@@ -292,13 +292,18 @@ void logWithBoxFrame(const String &message)
 }
 void getTimezoneData()
 {
-    logWithBoxFrame("Trying to retrieve observer timezone details via open-meteo.com");
+    logWithBoxFrame("Trying to retriev observer timezone details via timezonedb.com");
     newTFTprintPage = true;
     TFTprint("Retrieving timezone data...", TFT_YELLOW);
-    // Build the Open-Meteo URL (no API key required)
-    String timezoneUrl = "https://api.open-meteo.com/v1/forecast?latitude=" + String(OBSERVER_LATITUDE) + "&longitude=" + String(OBSERVER_LONGITUDE) + "&timezone=auto&forecast_days=1";
+    // Variables to store offset data
+    int timezoneOffset; // Offset in seconds, will be updated during setup for your location
+    int dstOffset;      // DST offset in seconds, will be updated during setup for your location
+    // Build the Time Zone Database URL
+    String timezoneUrl = "http://api.timezonedb.com/v2.1/get-time-zone?key=" + String(TIMEZONE_API_KEY) + "&format=json&by=position&lat=" + String(OBSERVER_LATITUDE) + "&lng=" + String(OBSERVER_LONGITUDE);
+    // Serial.println(timezoneUrl); // Debug URL
 
-    int maxRetries = 3;
+    int maxRetries = 3; // Number of retry attempts
+    String timeZoneName;
     bool success = false;
 
     for (int attempt = 1; attempt <= maxRetries; attempt++)
@@ -309,37 +314,49 @@ void getTimezoneData()
         {
             HTTPClient http;
             http.begin(timezoneUrl);
-            http.setTimeout(5000);
+            http.setTimeout(5000); // Set HTTP timeout to 5 seconds
             int httpCode = http.GET();
 
             if (httpCode == 200)
             {
                 String payload = http.getString();
-                DynamicJsonDocument doc(256);
+                DynamicJsonDocument doc(1024);
                 DeserializationError error = deserializeJson(doc, payload);
 
                 if (!error)
                 {
-                    totalTimeOffset = doc["utc_offset_seconds"]; // Already includes DST
-                    String timeZoneName = doc["timezone"].as<String>();
-                    String timeZoneAbbr = doc["timezone_abbreviation"].as<String>();
+                    timezoneOffset = doc["gmtOffset"];        // Offset in seconds
+                    dstOffset = (doc["dst"] == 1) ? 3600 : 0; // DST offset (1 hour if active)
+                    totalTimeOffset = timezoneOffset + dstOffset;
+
+                    timeZoneName = doc["zoneName"].as<String>();
                     success = true;
 
                     Serial.println("Timezone data retrieved successfully!");
                     Serial.print("Timezone Name: ");
                     Serial.println(timeZoneName);
-                    Serial.print("Timezone Abbreviation: ");
-                    Serial.println(timeZoneAbbr);
+                    Serial.print("Timezone Offset (seconds): ");
+                    Serial.println(timezoneOffset);
+                    Serial.print("DST Offset (seconds): ");
+                    Serial.println(dstOffset);
                     Serial.print("Total time offset (seconds): ");
                     Serial.println(totalTimeOffset);
 
                     TFTprint("Timezone data retrieved successfully!", TFT_GREEN);
                     TFTprint("");
-                    TFTprint("Timezone: " + timeZoneName + " (" + timeZoneAbbr + ")", TFT_WHITE);
+
+                    TFTprint("Timezone Name: " + String(timeZoneName), TFT_WHITE);
                     TFTprint("");
+
+                    TFTprint("Timezone Offset (seconds): " + String(timezoneOffset), TFT_WHITE);
+                    TFTprint("");
+
+                    TFTprint("DST Offset (seconds): " + String(dstOffset), TFT_WHITE);
+                    TFTprint("");
+
                     TFTprint("Total time Offset (seconds): " + String(totalTimeOffset), TFT_WHITE);
 
-                    break;
+                    break; // Exit the loop on success
                 }
                 else
                 {
@@ -350,11 +367,11 @@ void getTimezoneData()
             else
             {
                 Serial.printf("HTTP error: %d\n", httpCode);
-                TFTprint("Connection error to open-meteo.com", TFT_RED);
+                TFTprint("Connection error to timezonedb.com", TFT_RED);
                 TFTprint("Retrying....", TFT_YELLOW);
             }
 
-            http.end();
+            http.end(); // Close HTTP request
         }
         else
         {
@@ -363,13 +380,15 @@ void getTimezoneData()
             WiFi.reconnect();
         }
 
-        delay(2000 * attempt);
+        // Retry delay with exponential backoff
+        delay(2000 * attempt); // Increase delay with each retry
     }
 
     if (!success)
     {
         Serial.println("Failed to retrieve timezone data after maximum retries.");
         TFTprint("Failed to retrieve timezone data.", TFT_RED);
+        TFTprint("Check your API key in config.h", TFT_YELLOW);
         delay(5000);
         TFTprint("Rebooting....", TFT_YELLOW);
         delay(2000);
@@ -492,7 +511,7 @@ bool syncTimeFromNTP(bool displayOnTFT)
     delay(5000);  // Wait before trying again
     return false; // Indicate failure
 }
-void displayPExpeditionImage()
+void displayPExpedition72image()
 {
     // https://notisrac.github.io/FileToCArray/
     int16_t rc = png.openFLASH((uint8_t *)expedition, sizeof(expedition), pngDraw);
@@ -3261,7 +3280,7 @@ void loop()
                     {
                         if (DISPLAY_ISS_CREW == true)
                         {
-                            displayPExpeditionImage();
+                            displayPExpedition72image();
                             page1Displayed = false;
                             page2Displayed = false;
                             page3Displayed = false;
@@ -3413,7 +3432,7 @@ void loop()
                     {
                         if (DISPLAY_ISS_CREW == true)
                         {
-                            displayPExpeditionImage();
+                            displayPExpedition72image();
                             page1Displayed = false;
                             page2Displayed = false;
                             page3Displayed = false;

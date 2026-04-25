@@ -16,6 +16,7 @@ With the support of those who decided to build the unit (thank you Joël, Paul, 
 1. **Enhanced Satellite Tracking:** The system can now track any existing satellite by specifying its catalogue number in the `config.h` file.
 2. **Audio Notifications:** Added an output for a buzzer on pin 21 (configurable) to notify users of upcoming AOS, TCA, and LOS. This feature can be enabled or disabled by tapping on a speaker icon on the TFT screen.
 3. **WebSocket Output:** Implemented WebSocket output to enable communication with a separate unit for controlling an azimuth/elevation rotor.
+4. **🆓 No API Key Required:** Timezone and UTC offset are now automatically retrieved via [Open-Meteo](https://open-meteo.com/) — a completely free service with no registration or API key needed.
 
 Additionally, TLE management has been improved, and the NTP server time synchronization has been optimized for better accuracy and reliability.
 
@@ -194,16 +195,8 @@ const char* WIFI_PASSWORD_ALT = "your alternate Password"; // Replace with your 
 
 ---
 
-### **API Configuration**  
-The project uses the [TimeZoneDB API](https://timezonedb.com/) to fetch accurate time zone data.  
-1. Visit [TimeZoneDB](https://timezonedb.com/) and create a free account.  
-2. Generate your API key.  
-3. Update the following line in `config.h` with your API key:  
-
-```cpp
-// API configuration
-const char* TIMEZONE_API_KEY = "your API key";     // Replace with your TimeZoneDB API key
-```
+### **Timezone Configuration — No API Key Needed!**
+Timezone and UTC offset (including DST) are automatically retrieved from [Open-Meteo](https://open-meteo.com/) using your observer coordinates. **No account, no registration, no API key required.**
 
 ---
 
@@ -231,8 +224,7 @@ const char* WIFI_PASSWORD = "SuperSecretPassword";
 const char* WIFI_SSID_ALT = "OfficeNetwork";
 const char* WIFI_PASSWORD_ALT = "OfficePassword123";
 
-// API configuration
-const char* TIMEZONE_API_KEY = "ABCD1234EFGH5678"; // Example API key
+// Timezone is retrieved automatically via open-meteo.com (no API key required)
 
 // Observer location
 const double OBSERVER_LATITUDE = 46.4717;      // Latitude of your location
@@ -242,9 +234,9 @@ const double OBSERVER_ALTITUDE = 400.0;       // Altitude of your location in me
 
 ---
 
-### **Important Notes**  
-- Ensure the Wi-Fi credentials and API key are accurate and match your setup.  
-- Latitude and longitude values should reflect your exact location for best results. Use [Google Maps](https://maps.google.com) or a GPS device to find these coordinates.  
+### **Important Notes**
+- Ensure the Wi-Fi credentials are accurate and match your setup.
+- Latitude and longitude values should reflect your exact location for best results. Use [Google Maps](https://maps.google.com) or a GPS device to find these coordinates.
 - The altitude value must be in meters.
 
 ---

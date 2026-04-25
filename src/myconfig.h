@@ -54,13 +54,6 @@ int satelliteCatalogueNumber = 25544; // ISS (International Space Station)
 
 
 
-
-// API configuration
-// TimeZoneDB is a free service that provides a comprehensive time zone database for cities worldwide. 
-// get yours here https://timezonedb.com/
-const char* TIMEZONE_API_KEY = "EH7POYI19YHB";
-
-
 // Observer location
 const double OBSERVER_LATITUDE = 46.4666463;
 const double OBSERVER_LONGITUDE = 6.8615008;
