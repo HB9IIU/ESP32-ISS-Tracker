@@ -1,0 +1,54 @@
+; =========================================================
+; CYD 4" integrated board
+; ST7796, 480x320
+; =========================================================
+
+[platformio]
+default_envs = cyd4_st7796
+
+[env:cyd4_st7796]
+platform = espressif32@6.9.0
+board = esp32dev
+framework = arduino
+monitor_speed = 115200
+board_build.partitions = huge_app.csv
+
+build_flags =
+    -D USER_SETUP_LOADED
+    -D ST7796_DRIVER
+    -D TFT_MISO=12
+    -D TFT_MOSI=13
+    -D TFT_SCLK=14
+    -D TFT_CS=15
+    -D TFT_DC=2
+    -D TFT_RST=-1
+    -D USE_HSPI_PORT
+
+    ; Touch
+    -D TOUCH_CS=33
+    -D SPI_TOUCH_FREQUENCY=2500000
+
+    ; SPI speeds
+    -D SPI_FREQUENCY=40000000
+    -D SPI_READ_FREQUENCY=20000000
+
+    ; Backlight
+    -D TFT_BLP=27
+
+    ; Buzzer (on board connector)
+    -D BUZZER=25
+
+
+    ; Fonts
+    -D LOAD_GLCD     ; Font 0: very small (~8 px), fixed width, classic bitmap → good for debug, labels
+    -D LOAD_FONT1    ; Small (~16 px), proportional, simple readable font → basic UI text
+    -D LOAD_FONT2    ; Small (~16 px), slightly bolder/cleaner than Font1 → better readability on TFT
+    -D LOAD_FONT4    ; Medium (~26 px), proportional → good for menus, buttons, titles
+    -D LOAD_FONT6    ; Large (~48 px), proportional → ideal for main values (e.g. power, frequency)
+    -D LOAD_FONT7    ; Large (~48 px), 7-segment style → perfect for numeric displays (meters, clocks)
+    -D LOAD_FONT8    ; Very large (~75 px), proportional → big headline numbers / status display
+    -D LOAD_GFXFF
+    
+    ; Display behaviour
+    -D TFT_ROTATION=3
+    -D HB9_TFT_INVERT=0
