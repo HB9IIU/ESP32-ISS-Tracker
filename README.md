@@ -95,7 +95,7 @@ and an intuitive user interface to deliver a robust experience. Here's how it wo
 ### 🆕 **NEW!!!!! ESP32-32E 4" Integrated Display Board Supported**
 
 <div align="center">
-  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/ESP32-32E_4inch_board.png" alt="ESP32-32E 4 inch display board" width="800">
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/ESP32-32E_4inch_CYD_board.png" alt="ESP32-32E 4 inch display board" width="800">
 </div>
 
 This project can now also run on the popular **ESP32-32E integrated 4-inch display board**  
