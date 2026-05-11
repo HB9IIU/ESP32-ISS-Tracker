@@ -3,13 +3,14 @@
 #define CONFIG_H
 #include <stdint.h> // Include this for uint16_t and other fixed-width integer types
 
+
 // Wi-Fi configuration
-const char* WIFI_SSID = "your-ssid";
-const char* WIFI_PASSWORD = "your-password";
+const char* WIFI_SSID = "MESH";
+const char* WIFI_PASSWORD = "Nestle2010Nestle";
 
 // Alternative AP
-const char* WIFI_SSID_ALT = "your-alternative-ssid";
-const char* WIFI_PASSWORD_ALT  = "your-password-for-alternative-ssid";
+const char* WIFI_SSID_ALT = "NO WIFI FOR YOU!!!";
+const char* WIFI_PASSWORD_ALT  = "Nestle2010Nestle";
 
 
 // Satellite Catalogue Numbers
@@ -18,7 +19,7 @@ const char* WIFI_PASSWORD_ALT  = "your-password-for-alternative-ssid";
 int satelliteCatalogueNumber = 25544; // ISS (International Space Station)
 // int satelliteCatalogueNumber = 25338; // NOAA 15 (Polar Orbiting Weather Satellite)
 // int satelliteCatalogueNumber = 28654; // NOAA 18 (Polar Orbiting Weather Satellite)
-// int satelliteCatalogueNumber = 33591; // NOAA 19 (Polar Orbiting Weather Satellite)
+ //int satelliteCatalogueNumber = 33591; // NOAA 19 (Polar Orbiting Weather Satellite)
 // int satelliteCatalogueNumber = 29155; // METOP-A (EUMETSAT Weather Satellite)
 // int satelliteCatalogueNumber = 38771; // METOP-B (EUMETSAT Weather Satellite)
 // int satelliteCatalogueNumber = 43689; // METOP-C (EUMETSAT Weather Satellite)
@@ -53,24 +54,34 @@ int satelliteCatalogueNumber = 25544; // ISS (International Space Station)
 
 
 
-
-// Timezone is retrieved automatically via open-meteo.com (no API key required)
-
-
 // Observer location
-const double OBSERVER_LATITUDE = 46.2044;
-const double OBSERVER_LONGITUDE = 6.1432;
+const double OBSERVER_LATITUDE = 46.4666463;
+const double OBSERVER_LONGITUDE = 6.8615008;
 const double OBSERVER_ALTITUDE = 500.0;
 
+
+// Touch screen detectipn treshold (increase if pages are scrolling without pressing the TFT)
+//const int touchTreshold =900;
 
 // Buzzer notifications; set seconds before next pass, or 0 for none
 const int beepsNotificationBeforeAOSandLOS=15;
 bool notificationAtTCA=true;
 
 
+
 // Digital clock style
 constexpr bool display7DigisStyleClock = true;
 constexpr uint16_t clockDigitsColor = 0xFEA0;
+
+// Color used for inactive ghost segments in the 7-segment clock. Keep one line active and leave the others commented as presets.
+
+// constexpr uint16_t TFT_GHOST_SEGMENT_COLOR = 0x0000; // black for none
+// constexpr uint16_t TFT_GHOST_SEGMENT_COLOR = 0xF800; // red for test
+// constexpr uint16_t TFT_GHOST_SEGMENT_COLOR = 0x2104; // very dark grey
+// constexpr uint16_t TFT_GHOST_SEGMENT_COLOR = 0x3186; // dark grey
+//constexpr uint16_t TFT_GHOST_SEGMENT_COLOR = 0x39A7; // balanced default grey
+constexpr uint16_t TFT_GHOST_SEGMENT_COLOR = 0x4A49; // medium grey
+// constexpr uint16_t TFT_GHOST_SEGMENT_COLOR = 0x632C; // lighter grey
 
 // Display option
 const bool DISPLAY_ISS_CREW = true;
@@ -78,11 +89,11 @@ const bool DISPLAY_ISS_CREW = true;
 // duration of booting messages in ms
 int bootingMessagePause = 1000; // for TFT messages at boot
 
-bool DEBUG_ON_TFT = false; // provides a bit more time to read messages at start-up 
-
 //Automatic Page Change (true/false, duration between pages in ms)
 int autoPageChange = false;
 int durationBetweenPageChanges = 6000;
+
+
 
 /* Predefined Colors in RGB565 format
  TFT_BLACK       0x0000  // Black
@@ -106,5 +117,10 @@ int durationBetweenPageChanges = 6000;
  TFT_GREENYELLOW 0xAFE5  // Green-Yellow
  TFT_PINK        0xF81F  // Pink (alias for Magenta)
 */
+
+bool DEBUG_ON_TFT = false; // provides a bit more time to read messages at start-up 
+
+// Display configuration
+//const double MIN_ELEVATION = 0;
 
 #endif 

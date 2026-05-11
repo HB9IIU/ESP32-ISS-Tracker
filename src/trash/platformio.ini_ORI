@@ -1,5 +1,6 @@
 
 [env:esp32dev]
+; Standard ESP32 dev board with an external ILI9488 SPI TFT display
 platform = espressif32@6.9.0   ; Specify the version of the platform (or the latest one that worked)
 board = esp32dev
 framework = arduino

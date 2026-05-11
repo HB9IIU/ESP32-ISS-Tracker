@@ -1,6 +1,6 @@
 ; =========================================================
-; CYD 4" integrated board
-; ST7796, 480x320
+; Cheap Yellow Display (CYD) 4.0" integrated ESP32 board
+; Built-in ST7796 touch display, 480x320
 ; =========================================================
 
 [platformio]

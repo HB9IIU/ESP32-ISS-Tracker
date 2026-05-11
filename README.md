@@ -113,8 +113,18 @@ The project now includes **two build profiles**:
 
 ```ini
 [platformio]
-default_envs = cyd4_st7796
+default_envs = EXTERNAL_DISPLAY_ILI9488
+```
 
+- `EXTERNAL_DISPLAY_ILI9488`: standard ESP32 dev board with an external ILI9488 SPI TFT display
+- `CHEAP_YELLOW_DISPLAY_4IN`: Cheap Yellow Display 4-inch integrated ESP32 board with ST7796 touch display
+
+Change `default_envs` in `platformio.ini` if you want to switch hardware, or build a specific profile explicitly:
+
+```bash
+pio run -e EXTERNAL_DISPLAY_ILI9488
+pio run -e CHEAP_YELLOW_DISPLAY_4IN
+```
 
 ## Software
 
@@ -201,8 +211,8 @@ To enhance the usability and aesthetics of the project, I have included **all ne
    - Click on **File > Open Folder**, then select the unzipped project folder.  
    - Wait for PlatformIO to automatically download all necessary dependencies (this may take a few minutes).
 
-4. **Configure `config.h`**:  
-   To run this project successfully, you need to configure the `config.h` file by providing your specific settings for Wi-Fi, API, and observer location. Follow the instructions below:
+4. **Configure `src/config.h`**:  
+   To run this project successfully, you only need to edit `src/config.h`. Set your Wi-Fi credentials and observer location there. No separate `myconfig.h` file is needed anymore, and no API key is required for timezone handling.
 
 ### **Wi-Fi Configuration**  
 Set up your primary and alternate Wi-Fi credentials in the `config.h` file. These settings will allow your device to connect to the network.

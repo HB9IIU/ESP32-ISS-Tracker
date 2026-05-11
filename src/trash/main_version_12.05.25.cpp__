@@ -1,5 +1,4 @@
-#include "myconfig.h"
-// #include "config.h"
+#include "config.h"
 #include <Preferences.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -1480,9 +1479,6 @@ void display7segmentClock(int xOffset, int yOffset, uint16_t textColor, bool ref
         refreshBecauseReturningFromOtherPage = false;
     }
     static bool colonVisible = true;     // Tracks colon visibility
-                                         // Define the TFT_MIDGREY color as a local constant
-    const uint16_t TFT_MIDGREY = 0x39a7; // Darker grey https://rgbcolorpicker.com/565
-    // uint16_t TFT_MIDGREY = TFT_DARKGREY;
     int gap = 68;
     int gap2 = 20;
     int xCoordinates[6] = {xOffset, xOffset + gap, xOffset + 2 * gap + gap2, xOffset + 3 * gap + gap2, xOffset + 4 * gap + 2 * gap2, xOffset + 5 * gap + 2 * gap2};
@@ -1539,7 +1535,7 @@ void display7segmentClock(int xOffset, int yOffset, uint16_t textColor, bool ref
             tft.print(timeArray[i]);
 
             // Print the mapped character below the digit, but skip if the mapped character is 'H'
-            tft.setTextColor(TFT_MIDGREY, TFT_BLACK);
+            tft.setTextColor(TFT_GHOST_SEGMENT_COLOR, TFT_BLACK);
 
             char mappedChar = mappedChars[timeArray[i]]; // Get the mapped character
             if (mappedChar != 'H')

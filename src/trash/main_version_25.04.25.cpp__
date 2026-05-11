@@ -1,5 +1,4 @@
-#include "myconfig.h"
-// #include "config.h"
+#include "config.h"
 #include <Preferences.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -8,9 +7,8 @@
 #include <ArduinoJson.h>
 #include <TFT_eSPI.h>
 #include <Sgp4.h>
-#include <PNGdec.h>      // Include the PNG decoder library // https://notisrac.github.io/FileToCArray/
-#include "fancySplash.h" // Image is stored here in an 8-bit array
-// #include "worldMapLigth.h"    // Light Map
+#include <PNGdec.h>       // Include the PNG decoder library // https://notisrac.github.io/FileToCArray/ (select treat as binary)
+#include "fancySplash.h"  // Image is stored here in an 8-bit array
 #include "worldMapDark.h" // Dark Map
 #include "expedition73.h"
 #include <HB9IIU7segFonts.h> //  https://rop.nl/truetype2gfx/   https://fontforge.org/en-US/
@@ -18,7 +16,7 @@
 
 // Version Info
 const char *VERSION_NUMBER = "Perpetual Beta";
-const char *VERSION_DATE = "18.04.25";
+const char *VERSION_DATE = "08.08.25";
 
 // TFT setup
 TFT_eSPI tft = TFT_eSPI();
@@ -65,6 +63,7 @@ unsigned long passDuration = 0; // Duration of the pass in seconds
 unsigned long passMinutes = 0;  // Pass duration in minutes
 unsigned long passSeconds = 0;  // Remaining seconds after minutes
 bool speakerisON = true;
+
 //____________________________________________________________________
 void displaySysInfo();
 void initializeTFT();
@@ -342,8 +341,6 @@ void getTimezoneData()
                     Serial.print("Total time offset (seconds): ");
                     Serial.println(totalTimeOffset);
 
-
-
                     TFTprint("Timezone data retrieved successfully!", TFT_GREEN);
                     TFTprint("");
 
@@ -516,7 +513,7 @@ bool syncTimeFromNTP(bool displayOnTFT)
 void displayPExpedition72image()
 {
     // https://notisrac.github.io/FileToCArray/
-    int16_t rc = png.openFLASH((uint8_t *)expedition72, sizeof(expedition72), pngDraw);
+    int16_t rc = png.openFLASH((uint8_t *)expedition, sizeof(expedition), pngDraw);
 
     if (rc == PNG_SUCCESS)
     {
@@ -560,14 +557,14 @@ String determineTLEage(String line1charArray)
 
     char ageFormatted[50];
     sprintf(ageFormatted, "%lu day(s), %lu hour(s), %lu minute(s)", ageInDays, ageInHours, ageInMinutes);
-    //Serial.print("TLE Age: ");
-    //Serial.print(String(ageFormatted));
+    // Serial.print("TLE Age: ");
+    // Serial.print(String(ageFormatted));
     unsigned long totalHours = ageInSeconds / 3600;          // Total hours (can exceed 24)
     unsigned long totalMinutes = (ageInSeconds % 3600) / 60; // Remaining minutes
-    //Serial.printf(" ,i.e. ");
+    // Serial.printf(" ,i.e. ");
     char ageHHMM[10];                                        // Buffer to hold the formatted string
     sprintf(ageHHMM, "%lu:%02lu", totalHours, totalMinutes); // Format hours and minutes
-    //Serial.println(String(ageHHMM));
+    // Serial.println(String(ageHHMM));
     return String(ageHHMM);
 }
 void connectToWiFi()
@@ -655,7 +652,6 @@ void connectToWiFi()
     TFTprint("");
     TFTprint("Signal Strength: " + String(rssi) + " dBm", TFT_WHITE);
 }
-
 
 void getTLEelements(int catalogNumber)
 {
@@ -1483,9 +1479,6 @@ void display7segmentClock(int xOffset, int yOffset, uint16_t textColor, bool ref
         refreshBecauseReturningFromOtherPage = false;
     }
     static bool colonVisible = true;     // Tracks colon visibility
-                                         // Define the TFT_MIDGREY color as a local constant
-    const uint16_t TFT_MIDGREY = 0x39a7; // Darker grey https://rgbcolorpicker.com/565
-    // uint16_t TFT_MIDGREY = TFT_DARKGREY;
     int gap = 68;
     int gap2 = 20;
     int xCoordinates[6] = {xOffset, xOffset + gap, xOffset + 2 * gap + gap2, xOffset + 3 * gap + gap2, xOffset + 4 * gap + 2 * gap2, xOffset + 5 * gap + 2 * gap2};
@@ -1542,7 +1535,7 @@ void display7segmentClock(int xOffset, int yOffset, uint16_t textColor, bool ref
             tft.print(timeArray[i]);
 
             // Print the mapped character below the digit, but skip if the mapped character is 'H'
-            tft.setTextColor(TFT_MIDGREY, TFT_BLACK);
+            tft.setTextColor(TFT_GHOST_SEGMENT_COLOR, TFT_BLACK);
 
             char mappedChar = mappedChars[timeArray[i]]; // Get the mapped character
             if (mappedChar != 'H')
@@ -2138,7 +2131,7 @@ void displayPolarPlotPage()
     tft.setCursor(margin, 10);
     tft.setTextColor(TFT_GOLD, TFT_BLACK);
     tft.setTextFont(4);                            // Set the desired font
-    tft.print("ISS Orbit ");                       // Label for Orbit number
+    tft.print("Orbit ");                       // Label for Orbit number
     tft.println(formatWithSeparator(orbitNumber)); // Label for Orbit number
     tft.setCursor(margin, tft.getCursorY() + 5);
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -3033,7 +3026,7 @@ void setup()
     Serial.begin(115200);
     initializeTFT();
     initializeBuzzer();
-    displaySplashScreen(2500);
+    displaySplashScreen(4000);
     displayWelcomeMessage(2500);
     checkAndApplyTFTCalibrationData(false); // set true for forcing calibration
     displaySysInfo();
@@ -3092,7 +3085,7 @@ void loop()
     // Synching time with NTP
     const unsigned long NTPsynchInterval = 1.5 * 3600 * 1000;          // every 1.5 hour
     static unsigned long previousMillisForNTPsynchInterval = millis(); // Store the last time the function was executed
-   
+
     // Check if the NTPsynchInterval has passed
     if (millis() - previousMillisForNTPsynchInterval >= NTPsynchInterval)
     {
@@ -3109,7 +3102,7 @@ void loop()
 
     // get new sat data
     sat.findsat(unixtime);
-   
+
     // calculate orbit number
     getOrbitNumber(unixtime);
 
@@ -3146,11 +3139,12 @@ void loop()
     static unsigned long AzElPlotlastRefreshTime = 0;
 
     // Get the current touch pressure
-    // int touchTFT = tft.getTouchRawZ();
+    int touchTFT = tft.getTouchRawZ();
     // Check if the touch pressure exceeds the threshold and debounce
     // if (touchTFT > touchTreshold)
     uint16_t tx, ty;
     // Serial.print(".");
+
     if (tft.getTouch(&tx, &ty))
     {
         Serial.println();
@@ -3192,8 +3186,6 @@ void loop()
                 Serial.print("touchCounter:");
                 Serial.println(touchCounter);
 
-
-
                 Serial.println("XXXXXXXXXXXXXXXXXXXXXXXXX");
 
                 // If counter exceeds 6, reset it to 1
@@ -3217,12 +3209,12 @@ void loop()
                         tft.fillScreen(TFT_BLACK);
                         refreshBecauseReturningFromOtherPage = true;
                         updateBigClock(true);
-                        page1Displayed = true; 
-                        page2Displayed = false;     
-                        page3Displayed = false;     
-                        page4Displayed = false;   
-                        page5Displayed = false;     
-                        page6Displayed = false;   
+                        page1Displayed = true;
+                        page2Displayed = false;
+                        page3Displayed = false;
+                        page4Displayed = false;
+                        page5Displayed = false;
+                        page6Displayed = false;
                     }
                     displayMainPage(); // Show page 1
                     break;
@@ -3231,12 +3223,12 @@ void loop()
                     {
                         displayAzElPlotPage();
                         AzElPlotlastRefreshTime = millis();
-                        page1Displayed = false; 
-                        page2Displayed = true;     
-                        page3Displayed = false;     
-                        page4Displayed = false;   
-                        page5Displayed = false;     
-                        page6Displayed = false;   
+                        page1Displayed = false;
+                        page2Displayed = true;
+                        page3Displayed = false;
+                        page4Displayed = false;
+                        page5Displayed = false;
+                        page6Displayed = false;
                     }
                     break;
                 case 3:
@@ -3244,12 +3236,12 @@ void loop()
                     if (!page3Displayed)
                     {
                         displayPolarPlotPage();
-                        page1Displayed = false; 
-                        page2Displayed = false;     
-                        page3Displayed = true;     
-                        page4Displayed = false;   
-                        page5Displayed = false;     
-                        page6Displayed = false;                           
+                        page1Displayed = false;
+                        page2Displayed = false;
+                        page3Displayed = true;
+                        page4Displayed = false;
+                        page5Displayed = false;
+                        page6Displayed = false;
                         PolarPlotlastRefreshTime = millis();
                     }
                     break;
@@ -3257,24 +3249,24 @@ void loop()
                     if (!page4Displayed)
                     {
                         displayTableNext10Passes(); // Show page 3
-                        page1Displayed = false; 
-                        page2Displayed = false;     
-                        page3Displayed = false;     
-                        page4Displayed = true;   
-                        page5Displayed = false;     
-                        page6Displayed = false;   
+                        page1Displayed = false;
+                        page2Displayed = false;
+                        page3Displayed = false;
+                        page4Displayed = true;
+                        page5Displayed = false;
+                        page6Displayed = false;
                     }
                     break;
                 case 5:
                     if (!page5Displayed)
                     {
                         displayMapWithMultiPasses(); // Show page 4
-                        page1Displayed = false; 
-                        page2Displayed = false;     
-                        page3Displayed = false;     
-                        page4Displayed = false;   
-                        page5Displayed = true;     
-                        page6Displayed = false;   
+                        page1Displayed = false;
+                        page2Displayed = false;
+                        page3Displayed = false;
+                        page4Displayed = false;
+                        page5Displayed = true;
+                        page6Displayed = false;
                         multipassMaplastRefreshTime = millis();
                     }
                     break;
@@ -3285,12 +3277,13 @@ void loop()
                         if (DISPLAY_ISS_CREW == true)
                         {
                             displayPExpedition72image();
-                            page1Displayed = false; 
-                            page2Displayed = false;     
-                            page3Displayed = false;     
-                            page4Displayed = false;   
-                            page5Displayed = false;     
-                            page6Displayed = true;                           }
+                            page1Displayed = false;
+                            page2Displayed = false;
+                            page3Displayed = false;
+                            page4Displayed = false;
+                            page5Displayed = false;
+                            page6Displayed = true;
+                        }
                         else
                         {
                             touchCounter = 1;
@@ -3306,47 +3299,208 @@ void loop()
         }
     }
 
+    static unsigned long lastAutoPageChangeTime = millis();
+
+    if (autoPageChange && millis() - lastAutoPageChangeTime >= durationBetweenPageChanges)
+    {
+        Serial.println();
+        Serial.print("x=");
+        Serial.print(tx);
+        Serial.print(" y=");
+        Serial.println(ty);
+
+        // Only increment the counter if enough time has passed since the last touch
+        if (millis() - lastTouchTime > debounceDelay)
+        {
+            if ((tx >= rectX && tx <= rectX + rectW && ty >= rectY && ty <= rectY + rectH) && touchCounter == 1)
+            {
+                if (speakerisON == true)
+                {
+                    ledcWriteTone(0, 2000); // Play 2.16kHz beep
+                    delay(200);
+                    ledcWriteTone(0, 0);
+                    drawSpeakerOFF(226, 130);
+                    speakerisON = false;
+                    // delay(600);
+                }
+                else
+                {
+                    ledcWriteTone(0, 2000); // Play 2.16kHz beep
+                    delay(200);
+                    ledcWriteTone(0, 0);
+                    speakerisON = true;
+                    drawSpeakerON(226, 130);
+                    // delay(600);
+                }
+            }
+            else
+            {
+
+                touchCounter++; // Increment the counter
+                Serial.print("touchCounter:");
+                Serial.println(touchCounter);
+
+                // If counter exceeds 6, reset it to 1
+                if (touchCounter > 6)
+                {
+                    touchCounter = 1;
+                    // Reset page display flags so that pages can be displayed again
+                    page1Displayed = false;
+                    page2Displayed = false;
+                    page3Displayed = false;
+                    page4Displayed = false;
+                    page5Displayed = false;
+                    page6Displayed = false;
+                }
+                // Call the respective functions based on the counter value
+                switch (touchCounter)
+                {
+                case 1:
+                    if (!page1Displayed)
+                    {
+                        tft.fillScreen(TFT_BLACK);
+                        refreshBecauseReturningFromOtherPage = true;
+                        updateBigClock(true);
+                        page1Displayed = true;
+                        page2Displayed = false;
+                        page3Displayed = false;
+                        page4Displayed = false;
+                        page5Displayed = false;
+                        page6Displayed = false;
+                    }
+                    displayMainPage(); // Show page 1
+                    break;
+                case 2:
+                    if (!page2Displayed)
+                    {
+                        displayAzElPlotPage();
+                        AzElPlotlastRefreshTime = millis();
+                        page1Displayed = false;
+                        page2Displayed = true;
+                        page3Displayed = false;
+                        page4Displayed = false;
+                        page5Displayed = false;
+                        page6Displayed = false;
+                    }
+                    break;
+                case 3:
+
+                    if (!page3Displayed)
+                    {
+                        displayPolarPlotPage();
+                        page1Displayed = false;
+                        page2Displayed = false;
+                        page3Displayed = true;
+                        page4Displayed = false;
+                        page5Displayed = false;
+                        page6Displayed = false;
+                        PolarPlotlastRefreshTime = millis();
+                    }
+                    break;
+                case 4:
+                    if (!page4Displayed)
+                    {
+                        displayTableNext10Passes(); // Show page 3
+                        page1Displayed = false;
+                        page2Displayed = false;
+                        page3Displayed = false;
+                        page4Displayed = true;
+                        page5Displayed = false;
+                        page6Displayed = false;
+                    }
+                    break;
+                case 5:
+                    if (!page5Displayed)
+                    {
+                        displayMapWithMultiPasses(); // Show page 4
+                        page1Displayed = false;
+                        page2Displayed = false;
+                        page3Displayed = false;
+                        page4Displayed = false;
+                        page5Displayed = true;
+                        page6Displayed = false;
+                        multipassMaplastRefreshTime = millis();
+                    }
+                    break;
+
+                case 6:
+                    if (!page6Displayed)
+                    {
+                        if (DISPLAY_ISS_CREW == true)
+                        {
+                            displayPExpedition72image();
+                            page1Displayed = false;
+                            page2Displayed = false;
+                            page3Displayed = false;
+                            page4Displayed = false;
+                            page5Displayed = false;
+                            page6Displayed = true;
+                        }
+                        else
+                        {
+                            touchCounter = 1;
+                            tft.fillScreen(TFT_BLACK);
+                            refreshBecauseReturningFromOtherPage = true;
+                            displayMainPage(); // Show page 1
+                        }
+                    }
+                    break;
+                }
+            }
+            lastTouchTime = millis(); // Update the time of the last touch
+        }
+        // Reset the auto page change timer
+        lastAutoPageChangeTime = millis();
+    }
+
     //---------------------------------------------------------------------------------------------
     // Refresh logic  outside touch handling
-    if (touchCounter == 2) // AZel Plot
-    {
-        // Serial.println(sat.satEl);
-        //  Check if 5 seconds (5000 ms) have passed since the last refresh
-        if (millis() - AzElPlotlastRefreshTime >= 15000)
-        {
-            displayAzElPlotPage();              // Refresh the display
-            AzElPlotlastRefreshTime = millis(); // Update the last refresh time
-        }
-    }
+    if (autoPageChange == false)
 
-    if (touchCounter == 3) // Polar Plot
     {
-        // Check if 5 seconds (5000 ms) have passed since the last refresh
-        if (millis() - PolarPlotlastRefreshTime >= 15000)
+        if (touchCounter == 2) // AZel Plot
         {
-            displayPolarPlotPage();              // Refresh the display
-            PolarPlotlastRefreshTime = millis(); // Update the last refresh time
+            // Serial.println(sat.satEl);
+            //  Check if 5 seconds (5000 ms) have passed since the last refresh
+            if (millis() - AzElPlotlastRefreshTime >= 15000)
+            {
+                displayAzElPlotPage();              // Refresh the display
+                AzElPlotlastRefreshTime = millis(); // Update the last refresh time
+            }
         }
-    }
 
-    if (touchCounter == 5)
-    {
-        // Check if 5 seconds (5000 ms) have passed since the last refresh
-        if (millis() - multipassMaplastRefreshTime >= 5000)
+        if (touchCounter == 3) // Polar Plot
         {
-            displayMapWithMultiPasses();            // Refresh the display
-            multipassMaplastRefreshTime = millis(); // Update the last refresh time
+            // Check if 5 seconds (5000 ms) have passed since the last refresh
+            if (millis() - PolarPlotlastRefreshTime >= 15000)
+            {
+                displayPolarPlotPage();              // Refresh the display
+                PolarPlotlastRefreshTime = millis(); // Update the last refresh time
+            }
+        }
+
+        if (touchCounter == 5)
+        {
+            // Check if 5 seconds (5000 ms) have passed since the last refresh
+            if (millis() - multipassMaplastRefreshTime >= 5000)
+            {
+                displayMapWithMultiPasses();            // Refresh the display
+                multipassMaplastRefreshTime = millis(); // Update the last refresh time
+            }
         }
     }
     //--------------------------------------------------------------------------------
     // Process WebSocket events
+
     webSocket.loop();
 
     static unsigned long lastLoopTime = millis();
-    if (millis() - lastLoopTime >= 1000 && touchCounter == 1)
+    if (millis() - lastLoopTime >= 1000)
     {
-        displayMainPage();
-
+        if (touchCounter == 1)
+        {
+            displayMainPage();
+        }
         lastLoopTime = millis();
         String data = String("{\"satName\":\"") + sat.satName + "\"," +
                       "\"time\":\"" + formatTimeOnly(unixtime, true) + "\"," +
