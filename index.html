@@ -3,50 +3,338 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ISS Tracker – CYD 4in Firmware Installer</title>
+  <title>ISS Tracker — CYD 4in Web Flasher</title>
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js"></script>
   <style>
+    :root {
+      --accent: #38bdf8;
+      --accent2: #818cf8;
+      --bg: #0a0f1e;
+      --card: #111827;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    /* ── Stars background ── */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 20%  30%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 55%  10%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 75%  60%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 10%  80%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 90%  20%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 40%  70%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 65%  85%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 30%  50%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 80%  40%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 15%  15%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 50%  90%, #fff 0%, transparent 100%),
+        radial-gradient(1px 1px at 95%  75%, #fff 0%, transparent 100%);
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 64px 20px 48px;
+    }
+    .hero .badge {
+      display: inline-block;
+      background: rgba(56,189,248,.15);
+      border: 1px solid rgba(56,189,248,.35);
+      color: var(--accent);
+      font-size: .78rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 30%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+      margin-bottom: 14px;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--muted);
       max-width: 520px;
-      margin: 60px auto;
-      padding: 0 20px;
-      color: #222;
+      margin: 0 auto 36px;
     }
-    h1 { font-size: 1.4rem; margin-bottom: 4px; }
-    p  { margin: 8px 0; color: #555; font-size: 0.95rem; }
+
+    /* ── Flash button area ── */
+    .flash-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 28px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .flash-box h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+    .flash-box p {
+      font-size: .88rem;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    esp-web-install-button {
+      display: block;
+      margin-bottom: 18px;
+    }
+    esp-web-install-button::part(button) {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #0a0f1e;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 12px 32px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+    }
     .note {
-      margin-top: 24px;
+      background: rgba(251,191,36,.08);
+      border: 1px solid rgba(251,191,36,.3);
+      border-radius: 8px;
       padding: 10px 14px;
-      background: #fff8e1;
-      border-left: 4px solid #f9a825;
-      font-size: 0.88rem;
-      color: #555;
+      font-size: .83rem;
+      color: #fbbf24;
+      line-height: 1.5;
     }
+    .note strong { color: #fde68a; }
     .browser-note {
-      margin-top: 16px;
-      font-size: 0.82rem;
-      color: #999;
+      margin-top: 14px;
+      font-size: .78rem;
+      color: #475569;
+      text-align: center;
     }
+
+    /* ── Steps ── */
+    .section { padding: 56px 0; }
+    .section h2 {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 36px;
+      color: #fff;
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .step {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 20px;
+    }
+    .step-num {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #0a0f1e;
+      font-weight: 800;
+      font-size: .95rem;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+    }
+    .step h3 { font-size: .95rem; font-weight: 600; margin-bottom: 6px; color: #fff; }
+    .step p  { font-size: .84rem; color: var(--muted); }
+
+    /* ── Features ── */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .feature {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 18px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .feature .icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+    .feature h3 { font-size: .88rem; font-weight: 600; margin-bottom: 3px; color: #fff; }
+    .feature p  { font-size: .8rem; color: var(--muted); }
+
+    /* ── Screenshots ── */
+    .screenshots {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scrollbar-color: var(--border) transparent;
+    }
+    .screenshots img {
+      height: 200px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 20px;
+      text-align: center;
+      font-size: .82rem;
+      color: #475569;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
+<div class="wrap">
 
-  <h1>ISS Tracker – CYD 4in</h1>
-  <p>Flash the latest firmware directly from your browser.</p>
+  <!-- Hero -->
+  <div class="hero">
+    <div class="badge">&#x1F6F0;&#xFE0F; ESP32 CYD 4&rdquo; &mdash; Web Flasher</div>
+    <h1>HB9IIU ISS Tracker</h1>
+    <p>Real-time satellite tracking on a Cheap Yellow Display.<br>
+       No software, no drivers, no coding — just plug in and flash.</p>
 
-  <br>
-  <esp-web-install-button manifest="firmware/manifest.json"></esp-web-install-button>
-
-  <div class="note">
-    First time installing? When prompted, tick <strong>Erase device</strong>
-    before flashing. This ensures a clean start and avoids touchscreen
-    calibration issues.
+    <div class="flash-box">
+      <h2>Flash firmware to your CYD board</h2>
+      <p>Connect your board via USB, then click Install.</p>
+      <esp-web-install-button manifest="firmware/manifest.json"></esp-web-install-button>
+      <div class="note">
+        First install? When prompted, tick <strong>Erase device</strong> before flashing.
+        This ensures a clean start and avoids touch calibration issues.
+      </div>
+      <p class="browser-note">Requires Chrome or Edge &nbsp;&bull;&nbsp; Connect USB before clicking Install</p>
+    </div>
   </div>
 
-  <p class="browser-note">
-    Requires Chrome or Edge. USB cable must be connected before clicking Install.
-  </p>
+  <!-- After flashing steps -->
+  <div class="section">
+    <h2>What happens after flashing</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Touch calibration</h3>
+        <p>The screen asks if the image is upside-down. Tap to flip if needed, then follow the corner arrows to calibrate touch. Done once, stored in flash.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Connect &amp; configure</h3>
+        <p>Join the <strong style="color:#fff">ISS-Tracker-Setup</strong> WiFi on your phone or PC. Your browser opens automatically at <strong style="color:#fff">192.168.4.1</strong>. Fill in your WiFi, location and preferences.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Live tracking</h3>
+        <p>The device reboots, connects to your WiFi and starts tracking immediately. No PC needed from this point on.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">&#x21BA;</div>
+        <h3>Factory reset</h3>
+        <p>Need to reconfigure? Hold the screen during the splash for 3 seconds, then confirm. All settings and calibration are wiped.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="section" style="padding-top:0">
+    <h2>Features</h2>
+    <div class="features">
+      <div class="feature">
+        <div class="icon">&#x1F4E1;</div>
+        <div>
+          <h3>On-device SGP4 calculations</h3>
+          <p>Full orbital math runs on the ESP32. No position API, no cloud dependency.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="icon">&#x1F5FA;&#xFE0F;</div>
+        <div>
+          <h3>World map &amp; polar plot</h3>
+          <p>Live footprint overlay, multi-pass prediction, azimuth/elevation graph.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="icon">&#x1F6F0;&#xFE0F;</div>
+        <div>
+          <h3>Any satellite</h3>
+          <p>Track ISS, NOAA weather birds, HAM radio satellites, Hubble and more.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="icon">&#x1F514;</div>
+        <div>
+          <h3>Audio notifications</h3>
+          <p>Configurable buzzer beeps before AOS, LOS and at closest approach (TCA).</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="icon">&#x1F4F6;</div>
+        <div>
+          <h3>WebSocket rotor output</h3>
+          <p>Streams azimuth/elevation data for driving an external antenna rotor.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="icon">&#x1F513;</div>
+        <div>
+          <h3>No API key needed</h3>
+          <p>Timezone &amp; DST retrieved automatically via Open-Meteo. Free, no registration.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screenshots -->
+  <div class="section" style="padding-top:0">
+    <h2>Screenshots</h2>
+    <div class="screenshots">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7612.png" alt="Main screen">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7613.png" alt="Polar plot">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7615.png" alt="World map">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7616.png" alt="Pass info">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7617.png" alt="Crew">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7618.png" alt="Az/El graph">
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<footer>
+  <div class="wrap">
+    Built by <strong>HB9IIU &mdash; Daniel</strong> &nbsp;&bull;&nbsp;
+    <a href="https://github.com/HB9IIU/ESP32-ISS-Tracker" target="_blank">View on GitHub</a>
+    &nbsp;&bull;&nbsp; MIT License
+  </div>
+</footer>
 
 </body>
 </html>
