@@ -6,3 +6,5 @@
 .DS_Store
 .vscode/
 myconfig.h
+ESP32-4INCH-CYD-TouchTester/
+build/
