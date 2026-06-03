@@ -22,10 +22,10 @@
       background: var(--bg);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.6;
+      font-size: 17px;
+      line-height: 1.65;
     }
 
-    /* ── Stars background ── */
     body::before {
       content: "";
       position: fixed;
@@ -48,72 +48,83 @@
       z-index: 0;
     }
 
-    .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px; }
+    .wrap { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; padding: 0 20px; }
+
+    /* ── Language bar ── */
+    .lang-bar {
+      position: relative; z-index: 2;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 14px 24px 0;
+    }
+    .lang-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .85rem;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .lang-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color: transparent;
+      color: #0a0f1e;
+    }
 
     /* ── Hero ── */
-    .hero {
-      text-align: center;
-      padding: 64px 20px 48px;
-    }
-    .hero .badge {
+    .hero { text-align: center; padding: 52px 20px 44px; }
+    .badge {
       display: inline-block;
       background: rgba(56,189,248,.15);
       border: 1px solid rgba(56,189,248,.35);
       color: var(--accent);
-      font-size: .78rem;
-      letter-spacing: .08em;
+      font-size: .85rem;
+      letter-spacing: .07em;
       text-transform: uppercase;
-      padding: 4px 14px;
+      padding: 4px 16px;
       border-radius: 999px;
       margin-bottom: 20px;
     }
     .hero h1 {
-      font-size: clamp(2rem, 5vw, 3rem);
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
       font-weight: 700;
       background: linear-gradient(135deg, #fff 30%, var(--accent));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
       line-height: 1.2;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
-    .hero p {
-      font-size: 1.1rem;
+    .hero .subtitle {
+      font-size: 1.15rem;
       color: var(--muted);
-      max-width: 520px;
+      max-width: 540px;
       margin: 0 auto 36px;
     }
 
-    /* ── Flash button area ── */
+    /* ── Flash box ── */
     .flash-box {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 32px 28px;
-      max-width: 480px;
+      max-width: 500px;
       margin: 0 auto;
     }
-    .flash-box h2 {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: #fff;
-    }
-    .flash-box p {
-      font-size: .88rem;
-      color: var(--muted);
-      margin-bottom: 20px;
-    }
-    esp-web-install-button {
-      display: block;
-      margin-bottom: 18px;
-    }
+    .flash-box h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 6px; color: #fff; }
+    .flash-box .flash-sub { font-size: .95rem; color: var(--muted); margin-bottom: 22px; }
+    esp-web-install-button { display: block; margin-bottom: 18px; }
     esp-web-install-button::part(button) {
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       color: #0a0f1e;
       font-weight: 700;
-      font-size: 1rem;
-      padding: 12px 32px;
+      font-size: 1.05rem;
+      padding: 13px 32px;
       border-radius: 10px;
       border: none;
       cursor: pointer;
@@ -123,191 +134,170 @@
       background: rgba(251,191,36,.08);
       border: 1px solid rgba(251,191,36,.3);
       border-radius: 8px;
-      padding: 10px 14px;
-      font-size: .83rem;
+      padding: 12px 16px;
+      font-size: .9rem;
       color: #fbbf24;
-      line-height: 1.5;
+      line-height: 1.55;
     }
     .note strong { color: #fde68a; }
-    .browser-note {
-      margin-top: 14px;
-      font-size: .78rem;
-      color: #475569;
-      text-align: center;
-    }
+    .browser-note { margin-top: 14px; font-size: .84rem; color: #475569; text-align: center; }
 
-    /* ── Steps ── */
+    /* ── Sections ── */
     .section { padding: 56px 0; }
     .section h2 {
       text-align: center;
-      font-size: 1.5rem;
+      font-size: 1.7rem;
       font-weight: 700;
       margin-bottom: 36px;
       color: #fff;
     }
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-    }
-    .step {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px 20px;
-    }
+
+    /* ── Steps ── */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .step { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px 20px; }
     .step-num {
-      width: 36px; height: 36px;
-      border-radius: 50%;
+      width: 38px; height: 38px; border-radius: 50%;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: #0a0f1e;
-      font-weight: 800;
-      font-size: .95rem;
+      color: #0a0f1e; font-weight: 800; font-size: 1rem;
       display: flex; align-items: center; justify-content: center;
       margin-bottom: 14px;
     }
-    .step h3 { font-size: .95rem; font-weight: 600; margin-bottom: 6px; color: #fff; }
-    .step p  { font-size: .84rem; color: var(--muted); }
+    .step h3 { font-size: 1rem; font-weight: 600; margin-bottom: 7px; color: #fff; }
+    .step p  { font-size: .92rem; color: var(--muted); }
 
     /* ── Features ── */
-    .features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 14px;
-    }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
     .feature {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 18px 18px;
-      display: flex;
-      gap: 14px;
-      align-items: flex-start;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px 18px;
+      display: flex; gap: 14px; align-items: flex-start;
     }
-    .feature .icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
-    .feature h3 { font-size: .88rem; font-weight: 600; margin-bottom: 3px; color: #fff; }
-    .feature p  { font-size: .8rem; color: var(--muted); }
+    .feature .icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+    .feature h3 { font-size: .95rem; font-weight: 600; margin-bottom: 4px; color: #fff; }
+    .feature p  { font-size: .88rem; color: var(--muted); }
 
     /* ── Screenshots ── */
     .screenshots {
-      display: flex;
-      gap: 12px;
-      overflow-x: auto;
-      padding-bottom: 8px;
-      scrollbar-color: var(--border) transparent;
+      display: flex; gap: 12px; overflow-x: auto;
+      padding-bottom: 8px; scrollbar-color: var(--border) transparent;
     }
-    .screenshots img {
-      height: 200px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      flex-shrink: 0;
-    }
+    .screenshots img { height: 210px; border-radius: 10px; border: 1px solid var(--border); flex-shrink: 0; }
 
     /* ── Footer ── */
     footer {
       border-top: 1px solid var(--border);
-      padding: 28px 20px;
-      text-align: center;
-      font-size: .82rem;
-      color: #475569;
+      padding: 28px 20px; text-align: center;
+      font-size: .88rem; color: #475569;
     }
     footer a { color: var(--accent); text-decoration: none; }
     footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
+
+<!-- Language selector -->
+<div class="lang-bar">
+  <button class="lang-btn active" data-lang="en" onclick="setLang('en')">English</button>
+  <button class="lang-btn"        data-lang="fr" onclick="setLang('fr')">Français</button>
+  <button class="lang-btn"        data-lang="de" onclick="setLang('de')">Deutsch</button>
+</div>
+
 <div class="wrap">
 
   <!-- Hero -->
   <div class="hero">
-    <div class="badge">&#x1F6F0;&#xFE0F; ESP32 CYD 4&rdquo; &mdash; Web Flasher</div>
+    <div class="badge" data-i18n="badge">ESP32 CYD 4&rdquo; &mdash; Web Flasher</div>
     <h1>HB9IIU ISS Tracker</h1>
-    <p>Real-time satellite tracking on a Cheap Yellow Display.<br>
-       No software, no drivers, no coding — just plug in and flash.</p>
+    <p class="subtitle" data-i18n="hero_sub">
+      Real-time satellite tracking on a Cheap Yellow Display.<br>
+      No software, no drivers, no coding &mdash; just plug in and flash.
+    </p>
 
     <div class="flash-box">
-      <h2>Flash firmware to your CYD board</h2>
-      <p>Connect your board via USB, then click Install.</p>
+      <h2 data-i18n="flash_title">Flash firmware to your CYD board</h2>
+      <p class="flash-sub" data-i18n="flash_sub">Connect your board via USB, then click Install.</p>
       <esp-web-install-button manifest="firmware/manifest.json"></esp-web-install-button>
-      <div class="note">
+      <div class="note" data-i18n="flash_note">
         First install? When prompted, tick <strong>Erase device</strong> before flashing.
         This ensures a clean start and avoids touch calibration issues.
       </div>
-      <p class="browser-note">Requires Chrome or Edge &nbsp;&bull;&nbsp; Connect USB before clicking Install</p>
+      <p class="browser-note" data-i18n="browser_note">
+        Requires Chrome or Edge &nbsp;&bull;&nbsp; Connect USB before clicking Install
+      </p>
     </div>
   </div>
 
-  <!-- After flashing steps -->
+  <!-- After flashing -->
   <div class="section">
-    <h2>What happens after flashing</h2>
+    <h2 data-i18n="steps_title">What happens after flashing</h2>
     <div class="steps">
       <div class="step">
         <div class="step-num">1</div>
-        <h3>Touch calibration</h3>
-        <p>The screen asks if the image is upside-down. Tap to flip if needed, then follow the corner arrows to calibrate touch. Done once, stored in flash.</p>
+        <h3 data-i18n="step1_title">Touch calibration</h3>
+        <p data-i18n="step1_body">The screen asks if the image is upside-down. Tap to flip if needed, then follow the corner arrows to calibrate touch. Done once, stored in flash.</p>
       </div>
       <div class="step">
         <div class="step-num">2</div>
-        <h3>Connect &amp; configure</h3>
-        <p>Join the <strong style="color:#fff">ISS-Tracker-Setup</strong> WiFi on your phone or PC. Your browser opens automatically at <strong style="color:#fff">192.168.4.1</strong>. Fill in your WiFi, location and preferences.</p>
+        <h3 data-i18n="step2_title">Connect &amp; configure</h3>
+        <p data-i18n="step2_body">Join the <strong style="color:#fff">ISS-Tracker-Setup</strong> WiFi on your phone or PC. Your browser opens automatically at <strong style="color:#fff">192.168.4.1</strong>. Fill in your WiFi, location and preferences.</p>
       </div>
       <div class="step">
         <div class="step-num">3</div>
-        <h3>Live tracking</h3>
-        <p>The device reboots, connects to your WiFi and starts tracking immediately. No PC needed from this point on.</p>
+        <h3 data-i18n="step3_title">Live tracking</h3>
+        <p data-i18n="step3_body">The device reboots, connects to your WiFi and starts tracking immediately. No PC needed from this point on.</p>
       </div>
       <div class="step">
         <div class="step-num">&#x21BA;</div>
-        <h3>Factory reset</h3>
-        <p>Need to reconfigure? Hold the screen during the splash for 3 seconds, then confirm. All settings and calibration are wiped.</p>
+        <h3 data-i18n="step4_title">Factory reset</h3>
+        <p data-i18n="step4_body">Need to reconfigure? Hold the screen during the splash for 3 seconds, then confirm. All settings and calibration are wiped.</p>
       </div>
     </div>
   </div>
 
   <!-- Features -->
   <div class="section" style="padding-top:0">
-    <h2>Features</h2>
+    <h2 data-i18n="feat_title">Features</h2>
     <div class="features">
       <div class="feature">
         <div class="icon">&#x1F4E1;</div>
         <div>
-          <h3>On-device SGP4 calculations</h3>
-          <p>Full orbital math runs on the ESP32. No position API, no cloud dependency.</p>
+          <h3 data-i18n="f1_title">On-device SGP4 calculations</h3>
+          <p data-i18n="f1_body">Full orbital math runs on the ESP32. No position API, no cloud dependency.</p>
         </div>
       </div>
       <div class="feature">
         <div class="icon">&#x1F5FA;&#xFE0F;</div>
         <div>
-          <h3>World map &amp; polar plot</h3>
-          <p>Live footprint overlay, multi-pass prediction, azimuth/elevation graph.</p>
+          <h3 data-i18n="f2_title">World map &amp; polar plot</h3>
+          <p data-i18n="f2_body">Live footprint overlay, multi-pass prediction, azimuth/elevation graph.</p>
         </div>
       </div>
       <div class="feature">
         <div class="icon">&#x1F6F0;&#xFE0F;</div>
         <div>
-          <h3>Any satellite</h3>
-          <p>Track ISS, NOAA weather birds, HAM radio satellites, Hubble and more.</p>
+          <h3 data-i18n="f3_title">Any satellite</h3>
+          <p data-i18n="f3_body">Track ISS, NOAA weather birds, HAM radio satellites, Hubble and more.</p>
         </div>
       </div>
       <div class="feature">
         <div class="icon">&#x1F514;</div>
         <div>
-          <h3>Audio notifications</h3>
-          <p>Configurable buzzer beeps before AOS, LOS and at closest approach (TCA).</p>
+          <h3 data-i18n="f4_title">Audio notifications</h3>
+          <p data-i18n="f4_body">Configurable buzzer beeps before AOS, LOS and at closest approach (TCA).</p>
         </div>
       </div>
       <div class="feature">
         <div class="icon">&#x1F4F6;</div>
         <div>
-          <h3>WebSocket rotor output</h3>
-          <p>Streams azimuth/elevation data for driving an external antenna rotor.</p>
+          <h3 data-i18n="f5_title">WebSocket rotor output</h3>
+          <p data-i18n="f5_body">Streams azimuth/elevation data for driving an external antenna rotor.</p>
         </div>
       </div>
       <div class="feature">
         <div class="icon">&#x1F513;</div>
         <div>
-          <h3>No API key needed</h3>
-          <p>Timezone &amp; DST retrieved automatically via Open-Meteo. Free, no registration.</p>
+          <h3 data-i18n="f6_title">No API key needed</h3>
+          <p data-i18n="f6_body">Timezone &amp; DST retrieved automatically via Open-Meteo. Free, no registration.</p>
         </div>
       </div>
     </div>
@@ -315,26 +305,151 @@
 
   <!-- Screenshots -->
   <div class="section" style="padding-top:0">
-    <h2>Screenshots</h2>
+    <h2 data-i18n="screenshots_title">Screenshots</h2>
     <div class="screenshots">
-      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7612.png" alt="Main screen">
-      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7613.png" alt="Polar plot">
-      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7615.png" alt="World map">
-      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7616.png" alt="Pass info">
-      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7617.png" alt="Crew">
-      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7618.png" alt="Az/El graph">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7612.png" alt="">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7613.png" alt="">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7615.png" alt="">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7616.png" alt="">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7617.png" alt="">
+      <img src="https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/ScreenShots/IMG_7618.png" alt="">
     </div>
   </div>
 
-</div><!-- /wrap -->
+</div>
 
 <footer>
   <div class="wrap">
-    Built by <strong>HB9IIU &mdash; Daniel</strong> &nbsp;&bull;&nbsp;
-    <a href="https://github.com/HB9IIU/ESP32-ISS-Tracker" target="_blank">View on GitHub</a>
+    <span data-i18n="footer_built">Built by</span> <strong>HB9IIU &mdash; Daniel</strong>
+    &nbsp;&bull;&nbsp;
+    <a href="https://github.com/HB9IIU/ESP32-ISS-Tracker" target="_blank" data-i18n="footer_gh">View on GitHub</a>
     &nbsp;&bull;&nbsp; MIT License
   </div>
 </footer>
+
+<script>
+const T = {
+  en: {
+    badge:            'ESP32 CYD 4&rdquo; &mdash; Web Flasher',
+    hero_sub:         'Real-time satellite tracking on a Cheap Yellow Display.<br>No software, no drivers, no coding &mdash; just plug in and flash.',
+    flash_title:      'Flash firmware to your CYD board',
+    flash_sub:        'Connect your board via USB, then click Install.',
+    flash_note:       'First install? When prompted, tick <strong>Erase device</strong> before flashing. This ensures a clean start and avoids touch calibration issues.',
+    browser_note:     'Requires Chrome or Edge &nbsp;&bull;&nbsp; Connect USB before clicking Install',
+    steps_title:      'What happens after flashing',
+    step1_title:      'Touch calibration',
+    step1_body:       'The screen asks if the image is upside-down. Tap to flip if needed, then follow the corner arrows to calibrate. Done once, stored in flash.',
+    step2_title:      'Connect &amp; configure',
+    step2_body:       'Join the <strong style="color:#fff">ISS-Tracker-Setup</strong> WiFi on your phone or PC. Your browser opens automatically at <strong style="color:#fff">192.168.4.1</strong>. Fill in your WiFi, location and preferences.',
+    step3_title:      'Live tracking',
+    step3_body:       'The device reboots, connects to your WiFi and starts tracking immediately. No PC needed from this point on.',
+    step4_title:      'Factory reset',
+    step4_body:       'Need to reconfigure? Hold the screen during the splash for 3 seconds, then confirm. All settings and calibration are wiped.',
+    feat_title:       'Features',
+    f1_title:         'On-device SGP4 calculations',
+    f1_body:          'Full orbital math runs on the ESP32. No position API, no cloud dependency.',
+    f2_title:         'World map &amp; polar plot',
+    f2_body:          'Live footprint overlay, multi-pass prediction, azimuth/elevation graph.',
+    f3_title:         'Any satellite',
+    f3_body:          'Track ISS, NOAA weather birds, HAM radio satellites, Hubble and more.',
+    f4_title:         'Audio notifications',
+    f4_body:          'Configurable buzzer beeps before AOS, LOS and at closest approach (TCA).',
+    f5_title:         'WebSocket rotor output',
+    f5_body:          'Streams azimuth/elevation data for driving an external antenna rotor.',
+    f6_title:         'No API key needed',
+    f6_body:          'Timezone &amp; DST retrieved automatically via Open-Meteo. Free, no registration.',
+    screenshots_title:'Screenshots',
+    footer_built:     'Built by',
+    footer_gh:        'View on GitHub',
+  },
+  fr: {
+    badge:            'ESP32 CYD 4&rdquo; &mdash; Flasheur Web',
+    hero_sub:         'Suivi de satellites en temps r&eacute;el sur un Cheap Yellow Display.<br>Pas de logiciel, pas de pilotes, pas de code &mdash; branchez et flashez.',
+    flash_title:      'Flasher le firmware sur votre carte CYD',
+    flash_sub:        'Connectez votre carte via USB, puis cliquez sur Installer.',
+    flash_note:       'Premi&egrave;re installation&nbsp;? Cochez <strong>Effacer l&rsquo;appareil</strong> avant de flasher. Cela garantit un d&eacute;marrage propre et &eacute;vite les probl&egrave;mes de calibration tactile.',
+    browser_note:     'N&eacute;cessite Chrome ou Edge &nbsp;&bull;&nbsp; Connectez l&rsquo;USB avant de cliquer sur Installer',
+    steps_title:      'Que se passe-t-il apr&egrave;s le flash&nbsp;?',
+    step1_title:      'Calibration tactile',
+    step1_body:       "L'&eacute;cran demande si l'image est &agrave; l'envers. Touchez pour corriger si besoin, puis suivez les fl&egrave;ches dans les coins. Fait une seule fois, stock&eacute; en m&eacute;moire.",
+    step2_title:      'Connexion &amp; configuration',
+    step2_body:       'Rejoignez le WiFi <strong style="color:#fff">ISS-Tracker-Setup</strong> depuis votre t&eacute;l&eacute;phone ou PC. Le navigateur s&rsquo;ouvre automatiquement sur <strong style="color:#fff">192.168.4.1</strong>. Renseignez votre WiFi, position et pr&eacute;f&eacute;rences.',
+    step3_title:      'Suivi en direct',
+    step3_body:       "L'appareil red&eacute;marre, se connecte &agrave; votre WiFi et commence le suivi imm&eacute;diatement. Plus besoin d'ordinateur ensuite.",
+    step4_title:      'R&eacute;initialisation',
+    step4_body:       "Besoin de reconfigurer&nbsp;? Maintenez l'&eacute;cran pendant 3 secondes au d&eacute;marrage, puis confirmez. Tous les r&eacute;glages et la calibration sont effac&eacute;s.",
+    feat_title:       'Fonctionnalit&eacute;s',
+    f1_title:         'Calculs SGP4 embarqu&eacute;s',
+    f1_body:          "Tous les calculs orbitaux tournent sur l'ESP32. Pas d'API de position, pas de d&eacute;pendance cloud.",
+    f2_title:         'Carte du monde &amp; trac&eacute; polaire',
+    f2_body:          'Empreinte en direct, pr&eacute;diction multi-passage, graphique azimut/&eacute;l&eacute;vation.',
+    f3_title:         'Tout satellite',
+    f3_body:          "Suivez l'ISS, les satellites m&eacute;t&eacute;o NOAA, les satellites radioamateur, Hubble et bien d'autres.",
+    f4_title:         'Notifications sonores',
+    f4_body:          'Bips du buzzer configurables avant AOS, LOS et &agrave; l&rsquo;approche maximale (TCA).',
+    f5_title:         'Sortie WebSocket rotor',
+    f5_body:          "Diffuse les donn&eacute;es azimut/&eacute;l&eacute;vation pour piloter un rotor d'antenne externe.",
+    f6_title:         "Pas de cl&eacute; API n&eacute;cessaire",
+    f6_body:          'Fuseau horaire &amp; heure d&rsquo;&eacute;t&eacute; r&eacute;cup&eacute;r&eacute;s automatiquement via Open-Meteo. Gratuit, sans inscription.',
+    screenshots_title:'Captures d&rsquo;&eacute;cran',
+    footer_built:     'Cr&eacute;&eacute; par',
+    footer_gh:        'Voir sur GitHub',
+  },
+  de: {
+    badge:            'ESP32 CYD 4&rdquo; &mdash; Web-Flasher',
+    hero_sub:         'Echtzeit-Satellitenverfolgung auf einem Cheap Yellow Display.<br>Keine Software, keine Treiber, kein Code &mdash; einfach einstecken und flashen.',
+    flash_title:      'Firmware auf Ihr CYD-Board flashen',
+    flash_sub:        'Verbinden Sie das Board per USB, dann klicken Sie auf Installieren.',
+    flash_note:       'Erstinstallation? Aktivieren Sie <strong>Ger&auml;t l&ouml;schen</strong> vor dem Flashen. Das gew&auml;hrleistet einen sauberen Start und vermeidet Touch-Kalibrierungsprobleme.',
+    browser_note:     'Erfordert Chrome oder Edge &nbsp;&bull;&nbsp; USB vor dem Klicken verbinden',
+    steps_title:      'Was passiert nach dem Flashen?',
+    step1_title:      'Touch-Kalibrierung',
+    step1_body:       'Der Bildschirm fragt, ob das Bild auf dem Kopf steht. Tippen zum Drehen falls n&ouml;tig, dann den Eckpfeilen folgen. Einmalig, im Flash gespeichert.',
+    step2_title:      'Verbinden &amp; konfigurieren',
+    step2_body:       'Verbinden Sie sich mit dem WLAN <strong style="color:#fff">ISS-Tracker-Setup</strong> auf Ihrem Handy oder PC. Der Browser &ouml;ffnet sich automatisch auf <strong style="color:#fff">192.168.4.1</strong>. WLAN, Standort und Einstellungen eingeben.',
+    step3_title:      'Live-Tracking',
+    step3_body:       'Das Ger&auml;t startet neu, verbindet sich mit Ihrem WLAN und beginnt sofort zu tracken. Kein PC mehr n&ouml;tig.',
+    step4_title:      'Werksreset',
+    step4_body:       'Neu konfigurieren? Beim Startbildschirm 3 Sekunden dr&uuml;cken, dann best&auml;tigen. Alle Einstellungen und die Kalibrierung werden gel&ouml;scht.',
+    feat_title:       'Funktionen',
+    f1_title:         'SGP4-Berechnungen an Bord',
+    f1_body:          'Alle Bahnberechnungen laufen auf dem ESP32. Keine Positions-API, keine Cloud-Abh&auml;ngigkeit.',
+    f2_title:         'Weltkarte &amp; Polardiagramm',
+    f2_body:          'Live-Footprint, Mehrfachvorschau, Azimut/Elevations-Diagramm.',
+    f3_title:         'Beliebiger Satellit',
+    f3_body:          'ISS, NOAA-Wettersatelliten, Amateurfunk-Satelliten, Hubble und viele mehr.',
+    f4_title:         'Audio-Benachrichtigungen',
+    f4_body:          'Konfigurierbarer Summer vor AOS, LOS und bei maximaler Ann&auml;herung (TCA).',
+    f5_title:         'WebSocket Rotorausgang',
+    f5_body:          'Azimut/Elevation-Daten zur Steuerung eines externen Antennenrotors.',
+    f6_title:         'Kein API-Schl&uuml;ssel n&ouml;tig',
+    f6_body:          'Zeitzone &amp; Sommerzeit automatisch &uuml;ber Open-Meteo abgerufen. Kostenlos, keine Registrierung.',
+    screenshots_title:'Screenshots',
+    footer_built:     'Erstellt von',
+    footer_gh:        'Auf GitHub ansehen',
+  }
+};
+
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (T[lang][key] !== undefined) el.innerHTML = T[lang][key];
+  });
+  document.querySelectorAll('.lang-btn').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.lang === lang)
+  );
+  document.documentElement.lang = lang;
+  localStorage.setItem('iss_lang', lang);
+}
+
+// Restore saved language or default to browser language
+(function () {
+  const saved = localStorage.getItem('iss_lang');
+  const browser = navigator.language.slice(0, 2);
+  const lang = saved || (['fr','de'].includes(browser) ? browser : 'en');
+  if (lang !== 'en') setLang(lang);
+})();
+</script>
 
 </body>
 </html>
