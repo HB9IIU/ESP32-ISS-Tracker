@@ -46,7 +46,7 @@ int    tftRotation = 1;   // original board default
 
 // Version Info
 const char *VERSION_NUMBER = "Perpetual Beta";
-const char *VERSION_DATE = "24.04.26";
+const char *VERSION_DATE = "26.06.04";
 
 // TFT setup
 TFT_eSPI tft = TFT_eSPI();
