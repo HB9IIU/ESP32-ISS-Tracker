@@ -18,16 +18,16 @@
 // On CYD builds these are overwritten at boot by loadConfig() from NVS.
 // On other builds they serve as the active values — edit here as needed.
 
-String WIFI_SSID     = "MESH";
-String WIFI_PASSWORD = "Nestle2010Nestle";
+String WIFI_SSID     = "your-ssid";
+String WIFI_PASSWORD = "your-password";
 
-String WIFI_SSID_ALT     = "NO WIFI FOR YOU!!!";
-String WIFI_PASSWORD_ALT = "Nestle2010Nestle";
+String WIFI_SSID_ALT     = "your-alt-ssid";
+String WIFI_PASSWORD_ALT = "your-alt-password";
 
 int    satelliteCatalogueNumber      = 25544;
-double OBSERVER_LATITUDE             = 46.4666463;
-double OBSERVER_LONGITUDE            = 6.8615008;
-double OBSERVER_ALTITUDE             = 500.0;
+double OBSERVER_LATITUDE             = 0.0;
+double OBSERVER_LONGITUDE            = 0.0;
+double OBSERVER_ALTITUDE             = 0.0;
 int    beepsNotificationBeforeAOSandLOS = 15;
 bool   notificationAtTCA             = true;
 bool   display7DigisStyleClock       = true;
