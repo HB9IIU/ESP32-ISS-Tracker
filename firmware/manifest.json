@@ -1,6 +1,6 @@
 {
   "name": "ISS Tracker (CYD 4in)",
-  "version": "Build 2026-06-04 00:11",
+  "version": "Build 2026-06-04 00:20",
   "new_install_prompt_erase": true,
   "builds": [
     {

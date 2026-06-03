@@ -13,6 +13,9 @@
 #include "expedition74.h"
 #include <HB9IIU7segFonts.h> //  https://rop.nl/truetype2gfx/   https://fontforge.org/en-US/
 #include <WebSocketsServer.h>
+// Version Info
+const char *VERSION_NUMBER = "Perpetual Beta";
+const char *VERSION_DATE = "05.06.26";
 
 // ── Configuration defaults ─────────────────────────────────────────────────────
 // On CYD builds these are overwritten at boot by loadConfig() from NVS.
@@ -44,9 +47,7 @@ int    tftRotation = 3;   // CYD default — overridden from NVS by loadConfig()
 int    tftRotation = 1;   // original board default
 #endif
 
-// Version Info
-const char *VERSION_NUMBER = "Perpetual Beta";
-const char *VERSION_DATE = "26.06.04";
+
 
 // TFT setup
 TFT_eSPI tft = TFT_eSPI();
