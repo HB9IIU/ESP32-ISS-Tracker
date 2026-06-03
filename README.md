@@ -1,317 +1,248 @@
-# HB9IIU ISS Life Tracker
-### **Efficient Real-Time Calculations on an ESP32**
-
-This project is an **ESP32-based tracking system for the International Space Station (ISS)** that demonstrates the impressive functionality and versatility of this microcontroller. Unlike other applications that rely on external APIs to fetch the ISS's current position, this system retrieves only the **Two-Line Elements (TLEs)** and current time from online sources. All orbital calculations are performed in real time using the **SGDP4 library**, making the solution self-contained and dynamic.
-
-The system provides detailed information about ISS passes, including **Acquisition of Signal (AOS)**, **Time of Closest Approach (TCA)**, and **Loss of Signal (LOS)**. The data is displayed on a **480x320 TFT screen** with a touchscreen interface, offering **clear and informative visualizations** such as polar plots, azimuth/elevation graphs, and satellite footprint maps. 
-
-This project highlights how much capability can be packed into an ESP32, handling computationally intensive tasks while remaining compact and efficient.
+# HB9IIU ISS Tracker
+### Real-Time Satellite Tracking on an ESP32 — No API Key Required
 
 ---
 
-### 🚨 **NEW VERSION 2025** 🚨
+<div align="center">
 
-With the support of those who decided to build the unit (thank you Joël, Paul, and John), several bugs have been fixed in this latest version. Along with these fixes, the following major improvements have been introduced:
+## ⚡ Flash your CYD board directly from your browser
 
-1. **Enhanced Satellite Tracking:** The system can now track any existing satellite by specifying its catalogue number in the `config.h` file.
-2. **Audio Notifications:** Added an output for a buzzer on pin 21 (configurable) to notify users of upcoming AOS, TCA, and LOS. This feature can be enabled or disabled by tapping on a speaker icon on the TFT screen.
-3. **WebSocket Output:** Implemented WebSocket output to enable communication with a separate unit for controlling an azimuth/elevation rotor.
-4. **🆓 No API Key Required:** Timezone and UTC offset are now automatically retrieved via [Open-Meteo](https://open-meteo.com/) — a completely free service with no registration or API key needed.
+### No Visual Studio. No PlatformIO. No software to install.
 
-Additionally, TLE management has been improved, and the NTP server time synchronization has been optimized for better accuracy and reliability.
+<a href="https://hb9iiu.github.io/ESP32-ISS-Tracker/">
+  <img src="https://img.shields.io/badge/⚡%20OPEN%20WEB%20FLASHER-Click%20Here-blue?style=for-the-badge&logoColor=white" alt="Open Web Flasher" height="50"/>
+</a>
+
+**Plug your CYD board into your PC via USB → click the button above → flash → done.**  
+*Works in Chrome and Edge on Windows, macOS and Linux.*
+
+</div>
 
 ---
-### Demo
+
+## What is this?
+
+This project is an **ESP32-based tracking system for the International Space Station (ISS)** — and any other satellite you choose. Unlike systems that rely on external APIs for live position data, this one retrieves only the **Two-Line Elements (TLEs)** and current time from the internet. All orbital calculations are done in real time on the ESP32 itself using the **SGP4 library**, making the solution self-contained and dynamic.
+
+The system predicts and displays **AOS (Acquisition of Signal)**, **TCA (Time of Closest Approach)** and **LOS (Loss of Signal)** for upcoming passes. A 480×320 touchscreen TFT shows polar plots, azimuth/elevation graphs, world map overlays with multi-pass predictions, ISS crew information, and a custom 7-segment clock — all navigable by touch.
+
+---
+
+## Demo
+
 <div align="center">
   <a href="https://youtu.be/Vp4qGIXc1Ag">
-    <img src="https://img.youtube.com/vi/Vp4qGIXc1Ag/0.jpg" alt="HB9IIU ISS Life Tracker Demo">
+    <img src="https://img.youtube.com/vi/Vp4qGIXc1Ag/0.jpg" alt="HB9IIU ISS Tracker Demo" width="480">
   </a>
-  <p><strong>Click the image above to watch the demo on YouTube!</strong><br>
-  (Right-click and select "Open in New Tab" to keep this page open)</p>
+  <p><strong>Click the image to watch the demo on YouTube</strong></p>
 </div>
 
+---
 
-### Screenshots
+## Screenshots
+
 <div align="center">
-  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7612.png" alt="Screenshot 1" width="300"> 
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7612.png" alt="Screenshot 1" width="300">
   <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7613.png" alt="Screenshot 2" width="300">
-  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7615.png" alt="Screenshot 3" width="300"> 
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7615.png" alt="Screenshot 3" width="300">
   <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7616.png" alt="Screenshot 4" width="300">
-    <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7617.png" alt="Screenshot 5" width="300"> 
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7617.png" alt="Screenshot 5" width="300">
   <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/IMG_7618.png" alt="Screenshot 6" width="300">
-
 </div>
 
 ---
 
-## Description
+## First-Boot Setup (CYD)
 
-This ESP32-based ISS tracking application combines satellite data processing, real-time visualization, 
-and an intuitive user interface to deliver a robust experience. Here's how it works:
+After flashing, the device walks you through setup automatically — no computer needed after this point.
 
-#####  Data Retrieval
-- The application periodically fetches the latest Two-Line Element (TLE) data for the ISS from 
-  primary and fallback APIs, ensuring up-to-date orbital calculations.
+### Step 1 — Touch calibration
 
-##### Pass Prediction
-- Using the SGP4 library, it predicts satellite passes based on the user's geographical location, 
-  calculating essential parameters such as azimuth, elevation, acquisition of signal (AOS), and loss of signal (LOS).
+On first boot the screen asks: **"Is this text upside-down?"**
 
-##### Real-Time Tracking
-- The system updates ISS latitude, longitude, altitude, azimuth, and elevation data in real-time, 
-  enabling live positional tracking.
+- If the screen looks correct, simply wait for the countdown (8 seconds).
+- If the screen is upside-down, **tap anywhere** to flip the orientation. Calibration then proceeds in the correct orientation.
 
-##### Visual Display
-- A TFT screen showcases detailed ISS information through:
-  - Custom-rendered 7-segment clocks for precise time tracking.
-  - Dynamic plots, including polar and azimuth-elevation graphs.
-  - World map overlays with multi-pass predictions.
-  - Additional contextual graphics such as the ISS orbit path and current crew data.
+After the orientation check, follow the on-screen arrows to calibrate the touchscreen. This only needs to be done once.
 
-##### User-Friendly Features
-- Smooth touchscreen navigation across multiple pages.
-- Auto-refresh for critical information such as TLE updates, next-pass predictions, and ISS current position.
-- Localized time calculations based on user-configured timezone and daylight saving settings.
+### Step 2 — Wi-Fi & location setup
 
-##### Resilience & Redundancy
-- Automated fallback mechanisms for network and data retrieval issues.
-- TLE data is cached in flash memory, providing offline capabilities.
+After calibration the device starts a **captive portal**:
 
-##### Interactive Insights
-- Displays upcoming ISS passes with key metrics like duration, max elevation, and visibility times.
-- Highlights conditions suitable for amateur radio communication.
+1. The screen displays:
+   - WiFi network name: **`ISS-Tracker-Setup`**
+   - Browser address: **`192.168.4.1`**
+2. On your phone or PC, connect to the **`ISS-Tracker-Setup`** WiFi network.
+3. Your browser should open automatically. If not, navigate to **`192.168.4.1`**.
+4. Fill in the form:
+   - Your WiFi network name and password
+   - Your location (latitude, longitude, altitude)
+   - Satellite to track (ISS is pre-selected)
+   - Notifications, display preferences, and more
+5. Tap **Save & Reboot**.
+
+The device reboots, connects to your WiFi and starts tracking. That's it.
+
+> **Tip:** Right-click your location on Google Maps to copy coordinates directly.
 
 ---
 
-## Requirements
+## Factory Reset
 
-### Hardware
-- **ESP32** (ESP32-WROOM-32 or similar variations).
-- **480x320 TFT Display** (ILI9488 or compatible) with touch support.
-- **Wi-Fi Access** for retrieving TLE data and syncing time.
+If you need to start from scratch (new WiFi, new location, or give the device to someone else):
+
+1. Power on the device (or reboot it).
+2. While the **splash screen** is showing, **hold your finger on the screen for 3 seconds**.
+3. A confirmation screen appears — tap to confirm within 5 seconds.
+
+The device erases all settings and calibration data, then reboots into the first-boot setup flow.
 
 ---
 
-### 🆕 **NEW!!!!! ESP32-32E 4" Integrated Display Board Supported**
+## Hardware
+
+### Option 1 — CYD 4" Integrated Board (recommended)
 
 <div align="center">
-  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/ESP32-32E_4inch_CYD_board.png" alt="ESP32-32E 4 inch display board" width="800">
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/ScreenShots/ESP32-32E_4inch_CYD_board.png" alt="ESP32-32E 4 inch CYD board" width="600">
 </div>
 
-This project can now also run on the popular **ESP32-32E integrated 4-inch display board**  
-(no external wiring required).
+The **ESP32-32E 4-inch integrated display board** (also known as "Cheap Yellow Display" or CYD) has everything built in — ESP32, 480×320 ST7796 display, resistive touchscreen. No wiring required.
 
-You can easily find this board on AliExpress by searching for:
+Search AliExpress for: **"ESP32-32E 4 inch display"**
 
-👉 **"ESP32-32E 4 inch display"**
+- This is the board supported by the web flasher above.
+- Captive portal setup included — no `config.h` editing, no recompiling.
 
----
+### Option 2 — Standard ESP32 + External ILI9488 Display
 
-### ⚙️ PlatformIO Configuration
+The original hardware configuration: a standard ESP32 dev board wired to an external 480×320 ILI9488 SPI TFT with XPT2046 touch controller.
 
-The project now includes **two build profiles**:
-
-```ini
-[platformio]
-default_envs = EXTERNAL_DISPLAY_ILI9488
-```
-
-- `EXTERNAL_DISPLAY_ILI9488`: standard ESP32 dev board with an external ILI9488 SPI TFT display
-- `CHEAP_YELLOW_DISPLAY_4IN`: Cheap Yellow Display 4-inch integrated ESP32 board with ST7796 touch display
-
-Change `default_envs` in `platformio.ini` if you want to switch hardware, or build a specific profile explicitly:
-
-```bash
-pio run -e EXTERNAL_DISPLAY_ILI9488
-pio run -e CHEAP_YELLOW_DISPLAY_4IN
-```
-
-## Software
-
-#### Included Libraries
-The following libraries are used in this project. **No additional installation is required**, as all libraries have been pre-copied into the `lib` folder of this repository.
-
-- **`WiFi.h`**  
-  Provides support for connecting the ESP32 to a Wi-Fi network, managing connections, and handling networking.
-
-- **`HTTPClient.h`**  
-  Enables the ESP32 to make HTTP GET and POST requests for interacting with REST APIs or downloading data from the web.
-
-- **`ArduinoJson.h`**  
-  A lightweight and efficient JSON library for parsing and generating JSON data, commonly used with web APIs.
-
-- **`Sgp4.h`**  
-  Implements the Simplified General Perturbations Model 4 (SGP4) for satellite orbit calculations, critical for tracking objects like the ISS.
-
-- **`NTPClient.h`**  
-  A simple Network Time Protocol (NTP) client for synchronizing the ESP32's internal clock with an NTP server.
-
-- **`WiFiUdp.h`**  
-  Provides UDP communication capabilities, used in conjunction with protocols like NTP.
-
-- **`TFT_eSPI.h`**  
-  A high-performance graphics library for rendering graphics and text on TFT screens, optimized for use with ESP32.
-
-- **`Preferences.h`**  
-  A library for reading and writing small pieces of data to the ESP32's flash memory, useful for storing persistent settings or data.
-
-- **`PNGdec.h`**  
-  Decodes PNG images for rendering on the TFT screen, enabling the use of rich graphical content.
-
-- **`SolarCalculator.h`**  
-  Provides tools for solar position calculations, helpful for determining solar angles or daylight conditions.
-
-- **`HB9IIU7segFonts.h`**  
-  Contains custom seven-segment display-like fonts, suitable for numeric or retro-style displays.
+- Wiring diagram available in the `doc/` folder.
+- No custom PCB needed — direct pin-to-pin connections with Dupont cables.
+- Requires building from source with PlatformIO (see Developer Setup below).
 
 ---
 
-### Note
-All the required libraries are already included in the repository’s `lib` folder. **There is no need to install additional libraries**—this ensures that the project compiles and runs seamlessly.
+## Developer Setup (PlatformIO)
+
+For those who want to build from source, modify the code, or use the external display variant.
+
+### Prerequisites
+
+- [Visual Studio Code](https://code.visualstudio.com/)
+- [PlatformIO IDE extension](https://platformio.org/install/ide?install=vscode)
+
+### Steps
+
+1. **Download the repository:**
+
+   ```bash
+   git clone https://github.com/HB9IIU/ESP32-ISS-Tracker.git
+   ```
+   Or download the ZIP from GitHub and unzip it.
+
+2. **Open the project folder in VS Code.**  
+   PlatformIO will automatically detect the project.
+
+3. **Select your build profile** in `platformio.ini`:
+
+   ```ini
+   [platformio]
+   default_envs = CHEAP_YELLOW_DISPLAY_4IN   ; CYD 4" board
+   ; default_envs = EXTERNAL_DISPLAY_ILI9488  ; ESP32 + external ILI9488
+   ```
+
+   Or build a specific profile explicitly:
+
+   ```bash
+   pio run -e CHEAP_YELLOW_DISPLAY_4IN
+   pio run -e EXTERNAL_DISPLAY_ILI9488
+   ```
+
+4. **Build and upload** using the PlatformIO toolbar (checkmark = build, arrow = upload).
+
+5. **For the CYD build:** configuration is done via the captive portal on first boot — no source code editing needed.  
+   **For the external display build:** edit the defaults at the top of `src/main.cpp` (WiFi credentials, observer location, etc.) before uploading.
+
+> **Note:** All required libraries are vendored in the `lib/` folder. No additional library installation is needed.
 
 ---
-## Hardware Assembly
 
-- You will find the wiring diagram in the `doc` folder of this repository.
-- The assembly process is straightforward: you simply need to wire specific pins of the ESP32 to the TFT display as shown in the diagram.
-- There is **no need for a custom PCB**. The connections have been made pin-to-pin directly.
-- To simplify the soldering process, you can use **Dupont cables** with their plastic housings removed. This makes handling and soldering much easier.
+## Features
+
+- **Real-time SGP4 orbital calculations** — fully on-device, no position API
+- **Pass prediction** — AOS, TCA, LOS with azimuth, elevation and duration
+- **Multiple display pages** navigable by touch:
+  - 7-segment style clock
+  - Polar pass plot
+  - Azimuth / elevation graph
+  - World map with footprint and multi-pass overlay
+  - ISS crew information
+  - System info page
+- **Audio notifications** — configurable buzzer beeps before AOS/LOS and at TCA
+- **WebSocket output** — for driving an external azimuth/elevation rotor
+- **Any satellite** — track ISS, NOAA weather satellites, HAM radio birds, Hubble, and more by catalogue number
+- **Automatic timezone** — retrieved via [Open-Meteo](https://open-meteo.com/), no API key required
+- **TLE caching** — orbital elements stored in flash, available offline after first fetch
+- **Captive portal provisioner** (CYD) — browser-based first-boot configuration, no code editing
+- **Factory reset** — hold touch during splash screen to wipe and reconfigure
+
+---
+
 ## 3D Printing
 
-To enhance the usability and aesthetics of the project, I have included **all necessary STL files** for 3D printing in the `doc` folder of this repository. These files allow you to print the enclosure for your hardware, ensuring a neat and organized setup.
-<div align="center">
-  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/Enclosure3DprintFiles/Renderings/TFTESP32enclsoure_1.png" alt="Enclosure" width="500"> 
+STL files for a custom enclosure are included in the `doc/Enclosure3DprintFiles/` folder.
 
+<div align="center">
+  <img src="https://github.com/HB9IIU/ESP32-ISS-Tracker/blob/main/doc/Enclosure3DprintFiles/Renderings/TFTESP32enclsoure_1.png" alt="Enclosure render" width="500">
 </div>
 
-## Setup
-
-1. **Copy the Repository**:  
-   Download the project files from the repository:  
-   [https://github.com/HB9IIU/ESP32-ISS-Tracker/archive/refs/heads/main.zip](https://github.com/HB9IIU/ESP32-ISS-Tracker/archive/refs/heads/main.zip)
-
-2. **Install PlatformIO**:  
-   PlatformIO is the development environment used to compile and upload the code to the ESP32. Follow these steps to install it:  
-
-   - **Install Visual Studio Code (VS Code)**:  
-     Download and install VS Code from the [official website](https://code.visualstudio.com/).  
-
-   - **Install the PlatformIO IDE Extension**:  
-     1. Open VS Code.  
-     2. Navigate to the Extensions view by clicking on the square icon in the sidebar or pressing `Ctrl+Shift+X`.  
-     3. Search for "**PlatformIO IDE**" and click "**Install**".  
-
-   - **Verify Installation**:  
-     1. Restart VS Code after installation.  
-     2. Access PlatformIO by clicking on its icon (a small alien head) in the sidebar or by pressing `Ctrl+Alt+P`.
-
-3. **Open the Project Folder**:  
-   - Unzip the downloaded repository.  
-   - Open VS Code.  
-   - Click on **File > Open Folder**, then select the unzipped project folder.  
-   - Wait for PlatformIO to automatically download all necessary dependencies (this may take a few minutes).
-
-4. **Configure `src/config.h`**:  
-   To run this project successfully, you only need to edit `src/config.h`. Set your Wi-Fi credentials and observer location there. No separate `myconfig.h` file is needed anymore, and no API key is required for timezone handling.
-
-### **Wi-Fi Configuration**  
-Set up your primary and alternate Wi-Fi credentials in the `config.h` file. These settings will allow your device to connect to the network.
-
-```cpp
-// Wi-Fi configuration
-const char* WIFI_SSID = "your SSID";              // Replace with your primary Wi-Fi SSID
-const char* WIFI_PASSWORD = "your Password";      // Replace with your primary Wi-Fi password
-
-// Alternative AP
-const char* WIFI_SSID_ALT = "your alternate SSID";   // Replace with your alternate Wi-Fi SSID
-const char* WIFI_PASSWORD_ALT = "your alternate Password"; // Replace with your alternate Wi-Fi password
-```
-
 ---
 
-### **Timezone Configuration — No API Key Needed!**
-Timezone and UTC offset (including DST) are automatically retrieved from [Open-Meteo](https://open-meteo.com/) using your observer coordinates. **No account, no registration, no API key required.**
+## Libraries Used
 
----
+All libraries are pre-included in the `lib/` folder — no separate installation needed.
 
-### **Observer Location**  
-To ensure accurate calculations and visualizations, update the geographic location (latitude, longitude, and altitude in meters) for the observer.
-
-```cpp
-// Observer location
-const double OBSERVER_LATITUDE = 0.0;     // Replace with your latitude
-const double OBSERVER_LONGITUDE = 0.0;   // Replace with your longitude
-const double OBSERVER_ALTITUDE = 0.0;    // Replace with your altitude in meters
-```
-
----
-
-### **Example `config.h` File**  
-Here’s an example of a completed `config.h` file for reference:
-
-```cpp
-// Wi-Fi configuration
-const char* WIFI_SSID = "MyHomeNetwork";
-const char* WIFI_PASSWORD = "SuperSecretPassword";
-
-// Alternative AP
-const char* WIFI_SSID_ALT = "OfficeNetwork";
-const char* WIFI_PASSWORD_ALT = "OfficePassword123";
-
-// Timezone is retrieved automatically via open-meteo.com (no API key required)
-
-// Observer location
-const double OBSERVER_LATITUDE = 46.4717;      // Latitude of your location
-const double OBSERVER_LONGITUDE = 6.8768;     // Longitude of your location
-const double OBSERVER_ALTITUDE = 400.0;       // Altitude of your location in meters
-```
-
----
-
-### **Important Notes**
-- Ensure the Wi-Fi credentials are accurate and match your setup.
-- Latitude and longitude values should reflect your exact location for best results. Use [Google Maps](https://maps.google.com) or a GPS device to find these coordinates.
-- The altitude value must be in meters.
-
----
-
-5. **Compile and Upload the Code**:  
-   - Connect your ESP32 to your computer using a USB cable.  
-   - In VS Code, open the **PlatformIO toolbar** (left sidebar).  
-   - Click on the **"Build"** button (checkmark icon) to compile the code.  
-     - If the compilation succeeds, proceed to the next step.  
-   - Click on the **"Upload"** button (arrow icon) to upload the code to your ESP32.
-
-6. **Run the Tracker**:  
-   Once the code is uploaded successfully:  
-   - The TFT screen will display a splash image.  
-   - The ESP32 will connect to Wi-Fi and start retrieving ISS tracking data.  
-   - The screen will update with real-time information about the ISS.
+| Library | Purpose |
+|---|---|
+| TFT_eSPI | High-performance TFT graphics |
+| SGP4 | Satellite orbital calculations |
+| ArduinoJson | JSON parsing |
+| NTPClient | Network time synchronisation |
+| PNGdec | PNG image decoding |
+| ESPAsyncWebServer | Captive portal web server |
+| AsyncTCP | Async TCP for ESPAsyncWebServer |
+| Preferences | Persistent NVS storage |
+| WebSocketsServer | WebSocket rotor output |
+| HB9IIU7segFonts | Custom 7-segment style fonts |
 
 ---
 
 ## Contributing
 
-Contributions are welcome! If you’d like to improve this project, please:
-- Fork the repository.
-- Create a new branch for your feature or bugfix.
-- Submit a pull request with a detailed description.
+Contributions are welcome!
 
-## Acknowledgments
+- Fork the repository
+- Create a branch for your feature or fix
+- Submit a pull request with a clear description
 
-A heartfelt thank you to the authors and contributors of the libraries used in this project. Your work has made it possible to bring this project to life. Each library brings a unique capability, and we deeply appreciate the time, effort, and expertise invested in creating and maintaining them. 🙏
+---
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
 
+---
+
 ## Author
 
-**HB9IIU - Daniel**  
+**HB9IIU — Daniel Staempfli**  
 *Amateur Radio Enthusiast & Developer*  
 Contact: daniel at hb9iiu.com
 
-### A Personal Note
+---
 
-This is my very first project on GitHub, so please excuse any rough edges, chaotic code, or moments of "what was this person thinking?" I'm still figuring things out as I go! Your feedback, suggestions, or even just your silent nod of approval would mean a lot to me—and might just save future me from cringing too hard. Thanks for stopping by and checking out my little corner of GitHub! 🙌
+*This is my corner of GitHub — still learning, always tinkering. Feedback and suggestions are always welcome. Thanks for stopping by! 🙌*
+
 ![ESP32-1](https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/Misc/ESP32-1.png)

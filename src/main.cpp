@@ -1,4 +1,4 @@
-#include "config.h"
+#include "provisioner.h"
 #include <Preferences.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -13,6 +13,36 @@
 #include "expedition74.h"
 #include <HB9IIU7segFonts.h> //  https://rop.nl/truetype2gfx/   https://fontforge.org/en-US/
 #include <WebSocketsServer.h>
+
+// ── Configuration defaults ─────────────────────────────────────────────────────
+// On CYD builds these are overwritten at boot by loadConfig() from NVS.
+// On other builds they serve as the active values — edit here as needed.
+
+String WIFI_SSID     = "MESH";
+String WIFI_PASSWORD = "Nestle2010Nestle";
+
+String WIFI_SSID_ALT     = "NO WIFI FOR YOU!!!";
+String WIFI_PASSWORD_ALT = "Nestle2010Nestle";
+
+int    satelliteCatalogueNumber      = 25544;
+double OBSERVER_LATITUDE             = 46.4666463;
+double OBSERVER_LONGITUDE            = 6.8615008;
+double OBSERVER_ALTITUDE             = 500.0;
+int    beepsNotificationBeforeAOSandLOS = 15;
+bool   notificationAtTCA             = true;
+bool   display7DigisStyleClock       = true;
+uint16_t clockDigitsColor            = 0xFEA0;
+uint16_t TFT_GHOST_SEGMENT_COLOR     = 0x4A49;
+bool   DISPLAY_ISS_CREW              = true;
+int    bootingMessagePause           = 1000;
+int    autoPageChange                = false;
+int    durationBetweenPageChanges    = 6000;
+bool   DEBUG_ON_TFT                  = false;
+#ifdef HAS_CAPTIVE_PORTAL
+int    tftRotation = 3;   // CYD default — overridden from NVS by loadConfig()
+#else
+int    tftRotation = 1;   // original board default
+#endif
 
 // Version Info
 const char *VERSION_NUMBER = "Perpetual Beta";
@@ -132,7 +162,7 @@ void initializeTFT()
 {
     pinMode(TFT_BLP, OUTPUT); // for TFT backlight
     tft.init();
-    tft.setRotation(1);
+    tft.setRotation(tftRotation);
     tft.fillScreen(TFT_BLACK); // Clears the screen to black
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setTextSize(1);
@@ -564,9 +594,9 @@ void connectToWiFi()
             WiFi.disconnect(true); // optional but clean
             WiFi.setHostname("HB9IIU_SAT");
 
-            String message = "Connecting to primary Wi-Fi: " + String(WIFI_SSID);
+            String message = "Connecting to primary Wi-Fi: " + WIFI_SSID;
             TFTprint(message, TFT_YELLOW);
-            WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+            WiFi.begin(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str());
         }
         else
         {
@@ -577,9 +607,9 @@ void connectToWiFi()
 
             TFTprint("");
 
-            String message = "Connecting to alternative Wi-Fi: " + String(WIFI_SSID_ALT);
+            String message = "Connecting to alternative Wi-Fi: " + WIFI_SSID_ALT;
             TFTprint(message, TFT_YELLOW);
-            WiFi.begin(WIFI_SSID_ALT, WIFI_PASSWORD_ALT);
+            WiFi.begin(WIFI_SSID_ALT.c_str(), WIFI_PASSWORD_ALT.c_str());
         }
 
         // Check Wi-Fi connection status
@@ -723,6 +753,72 @@ void initializeBuzzer()
         delay(25);              // Wait 0.5 second between repetitions
     }
 }
+
+#ifdef HAS_CAPTIVE_PORTAL
+static void factoryResetConfirm()
+{
+    tft.fillScreen(TFT_BLACK);
+    tft.fillRect(0, 0, tft.width(), 34, TFT_RED);
+    tft.setTextColor(TFT_WHITE, TFT_RED);
+    tft.setFreeFont(&FreeSansBold12pt7b);
+    tft.setCursor(10, 22);
+    tft.print("  !!! FACTORY RESET !!!");
+
+    tft.setFreeFont(&FreeSans12pt7b);
+    int16_t lh = tft.fontHeight() + 6;
+    auto cp = [&](const String &s, uint16_t col, int16_t y) {
+        tft.setTextColor(col, TFT_BLACK);
+        tft.setCursor((tft.width() - tft.textWidth(s)) / 2, y);
+        tft.print(s);
+    };
+    cp("This will erase all settings,",      TFT_WHITE,     70);
+    cp("WiFi, location and calibration.",     TFT_WHITE,     70 + lh);
+    cp("TAP to confirm reset.",               TFT_RED,       70 + lh * 2 + 6);
+    cp("Or wait for the countdown to cancel.", TFT_LIGHTGREY, 70 + lh * 3 + 6);
+
+    // Wait for the user to lift the finger that triggered this
+    while (tft.getTouchRawZ() > 300) delay(20);
+    delay(200);
+
+    tft.setTextFont(7);
+    int16_t dW = tft.textWidth("0");
+    int16_t dH = tft.fontHeight();
+    int16_t dX = (tft.width() - dW) / 2;
+    int16_t dY = 185;
+
+    bool confirmed = false;
+    for (int s = 5; s > 0 && !confirmed; s--) {
+        tft.fillRect(dX - 4, dY - 4, dW + 8, dH + 8, TFT_BLACK);
+        tft.setTextColor(TFT_RED, TFT_BLACK);
+        tft.setCursor(dX, dY);
+        tft.print(String(s));
+        unsigned long t0 = millis();
+        while (millis() - t0 < 1000) {
+            if (tft.getTouchRawZ() > 300) { confirmed = true; break; }
+            delay(20);
+        }
+    }
+
+    if (confirmed) {
+        { Preferences p; p.begin("TFT",        false); p.clear(); p.end(); }
+        { Preferences p; p.begin("iss_config",  false); p.clear(); p.end(); }
+
+        tft.fillScreen(TFT_BLACK);
+        tft.setFreeFont(&FreeSans12pt7b);
+        auto cp2 = [&](const String &s, uint16_t col, int16_t y) {
+            tft.setTextColor(col, TFT_BLACK);
+            tft.setCursor((tft.width() - tft.textWidth(s)) / 2, y);
+            tft.print(s);
+        };
+        cp2("Factory reset complete.", TFT_GREEN, tft.height() / 2 - 20);
+        cp2("Rebooting...",             TFT_WHITE, tft.height() / 2 + 10);
+        delay(1500);
+        ESP.restart();
+    }
+    // Cancelled — caller returns and normal boot continues
+}
+#endif
+
 void displaySplashScreen(int duration)
 {
     digitalWrite(TFT_BLP, LOW);
@@ -746,7 +842,25 @@ void displaySplashScreen(int duration)
 
     digitalWrite(TFT_BLP, HIGH);
 
+#ifdef HAS_CAPTIVE_PORTAL
+    {
+        unsigned long touchStart = 0;
+        bool touching = false;
+        unsigned long start = millis();
+        while (millis() - start < (unsigned long)duration) {
+            bool t = (tft.getTouchRawZ() > 300);
+            if (t && !touching) { touchStart = millis(); touching = true; }
+            else if (!t)        { touching = false; }
+            if (touching && millis() - touchStart >= 3000) {
+                factoryResetConfirm();
+                return;
+            }
+            delay(20);
+        }
+    }
+#else
     delay(duration);
+#endif
 }
 void pngDraw(PNGDRAW *pDraw)
 {
@@ -2733,6 +2847,62 @@ void calibrateTFTscreen()
 {
     uint16_t calibrationData[5];
 
+#ifdef HAS_CAPTIVE_PORTAL
+    {
+        // Ask user whether the screen looks upside-down before calibrating.
+        // A raw-pressure tap (no calibration needed) triggers a 180° flip.
+        tft.fillScreen(TFT_BLACK);
+        tft.fillRect(0, 0, tft.width(), 34, TFT_GOLD);
+        tft.setTextColor(TFT_BLACK, TFT_GOLD);
+        tft.setFreeFont(&FreeSansBold12pt7b);
+        tft.setCursor(10, 22);
+        tft.print(" TFT TOUCHSCREEN CALIBRATION");
+
+        tft.setFreeFont(&FreeSans12pt7b);
+        int16_t lh = tft.fontHeight() + 6;
+        auto cp = [&](const String &s, uint16_t col, int16_t y) {
+            tft.setTextColor(col, TFT_BLACK);
+            tft.setCursor((tft.width() - tft.textWidth(s)) / 2, y);
+            tft.print(s);
+        };
+        cp("Is this text UPSIDE-DOWN?",         TFT_WHITE,     70);
+        cp("TAP SCREEN to flip orientation.",    TFT_YELLOW,    70 + lh);
+        cp("Or wait for the countdown.",         TFT_LIGHTGREY, 70 + lh * 2);
+
+        tft.setTextFont(7);
+        int16_t dW = tft.textWidth("0");
+        int16_t dH = tft.fontHeight();
+        int16_t dX = (tft.width() - dW) / 2;
+        int16_t dY = 185;
+
+        bool rotFlipped = false;
+        for (int s = 8; s > 0 && !rotFlipped; s--) {
+            tft.fillRect(dX - 4, dY - 4, dW + 8, dH + 8, TFT_BLACK);
+            tft.setTextColor(TFT_CYAN, TFT_BLACK);
+            tft.setCursor(dX, dY);
+            tft.print(String(s));
+            unsigned long t0 = millis();
+            while (millis() - t0 < 1000) {
+                if (tft.getTouchRawZ() > 300) { rotFlipped = true; break; }
+                delay(20);
+            }
+        }
+
+        if (rotFlipped) {
+            tftRotation = (tftRotation == 3) ? 1 : 3;
+            Preferences p;
+            p.begin("iss_config", false);
+            p.putInt("tft_rot", tftRotation);
+            p.end();
+            tft.setRotation(tftRotation);
+            tft.fillScreen(TFT_BLACK);
+            tft.setFreeFont(&FreeSans12pt7b);
+            cp("Screen flipped! Starting calibration...", TFT_GREEN, tft.height() / 2 - 10);
+            delay(1500);
+        }
+    }
+#endif
+
     // Display recalibration message
     tft.fillScreen(TFT_BLACK);             // Clear screen
     tft.setTextColor(TFT_BLACK, TFT_GOLD); // Set text color (black on gold)
@@ -2755,11 +2925,11 @@ void calibrateTFTscreen()
 
     int16_t yPos = 100;
 
-    for (String line : instructions)
+    for (int i = 0; i < 6; i++)
     {
-        int16_t xPos = (tft.width() - tft.textWidth(line)) / 2;
+        int16_t xPos = (tft.width() - tft.textWidth(instructions[i])) / 2;
         tft.setCursor(xPos, yPos);
-        tft.print(line);
+        tft.print(instructions[i]);
         yPos += tft.fontHeight();
     }
 
@@ -3005,11 +3175,26 @@ void setup()
         bootingMessagePause = 3000;
     }
     Serial.begin(115200);
+#ifdef HAS_CAPTIVE_PORTAL
+    {
+        Preferences p;
+        p.begin("iss_config", true);
+        tftRotation = p.getInt("tft_rot", tftRotation);
+        p.end();
+    }
+#endif
     initializeTFT();
     initializeBuzzer();
     displaySplashScreen(4000);
     displayWelcomeMessage(2500);
     checkAndApplyTFTCalibrationData(false); // set true for forcing calibration
+#ifdef HAS_CAPTIVE_PORTAL
+    if (!hasValidConfig()) {
+        startProvisioner(tft);
+        // startProvisioner() reboots the device — execution never continues here
+    }
+    loadConfig();
+#endif
     displaySysInfo();
     connectToWiFi();
     delay(bootingMessagePause);
