@@ -99,6 +99,24 @@ The device erases all settings and calibration data, then reboots into the first
 
 ---
 
+## Changing Settings After First Boot
+
+Once the device is running on your WiFi network, you can change any setting at any time — no factory reset needed.
+
+Open a browser on any phone or PC connected to the **same WiFi network** and go to:
+
+**`http://iss-tracker.local`**
+
+Or use the IP address shown on the TFT screen during boot.
+
+The settings page opens pre-filled with all your current values. Change what you need, tap **Save & Reboot**, and the device restarts with the new configuration.
+
+> **Note:** The password field is intentionally left blank — leave it empty to keep your current password, or type a new one to change it.
+
+> **Tip:** `http://iss-tracker.local` works on Windows, macOS, iOS and Android. On some older Android devices you may need to use the IP address instead.
+
+---
+
 ## Hardware
 
 ### Option 1 — CYD 4" Integrated Board (recommended)
@@ -186,6 +204,7 @@ For those who want to build from source, modify the code, or use the external di
 - **Automatic timezone** — retrieved via [Open-Meteo](https://open-meteo.com/), no API key required
 - **TLE caching** — orbital elements stored in flash, available offline after first fetch
 - **Captive portal provisioner** (CYD) — browser-based first-boot configuration, no code editing
+- **Persistent settings server** — change any setting at any time via `http://iss-tracker.local`, no factory reset needed
 - **Factory reset** — hold touch during splash screen to wipe and reconfigure
 
 ---
