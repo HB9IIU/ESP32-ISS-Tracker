@@ -7,5 +7,7 @@
 bool hasValidConfig();
 void loadConfig();
 void startProvisioner(TFT_eSPI &tft);
+void startConfigServer();
+bool configServerRebootPending();
 
 #endif // HAS_CAPTIVE_PORTAL

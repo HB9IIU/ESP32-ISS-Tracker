@@ -80,6 +80,15 @@ static uint16_t hexToRgb565(const String &hex) {
     return ((uint16_t)(r >> 3) << 11) | ((uint16_t)(g >> 2) << 5) | (b >> 3);
 }
 
+static String rgb565ToHex(uint16_t color) {
+    uint8_t r = ((color >> 11) & 0x1F) << 3;
+    uint8_t g = ((color >>  5) & 0x3F) << 2;
+    uint8_t b =  (color        & 0x1F) << 3;
+    char buf[8];
+    snprintf(buf, sizeof(buf), "#%02X%02X%02X", r, g, b);
+    return String(buf);
+}
+
 // ── HTML pages ─────────────────────────────────────────────────────────────────
 
 static const char SETUP_PAGE[] PROGMEM = R"HTMLPAGE(
@@ -134,7 +143,7 @@ static const char SETUP_PAGE[] PROGMEM = R"HTMLPAGE(
       <input type="text" name="wifi_ssid" placeholder="Your WiFi network" required/>
       <label>Password</label>
       <div class="pw">
-        <input type="password" name="wifi_pass" id="pw" placeholder="Your WiFi password"/>
+        <input type="password" name="wifi_pass" id="pw" placeholder="Leave blank to keep current password"/>
         <button type="button" onclick="t()">Show</button>
       </div>
     </div>
@@ -159,7 +168,7 @@ static const char SETUP_PAGE[] PROGMEM = R"HTMLPAGE(
     <div class="card">
       <h2>Satellite</h2>
       <label>Select satellite to track</label>
-      <select name="sat_num">
+      <select name="sat_num" id="sat_num" onchange="toggleCustomSat(this)">
         <optgroup label="Space Station">
           <option value="25544" selected>ISS &mdash; International Space Station</option>
         </optgroup>
@@ -175,6 +184,7 @@ static const char SETUP_PAGE[] PROGMEM = R"HTMLPAGE(
           <option value="41866">GOES 16</option>
           <option value="43226">GOES 17</option>
           <option value="46984">Sentinel-6</option>
+          <option value="57166">Meteor M2-3</option>
         </optgroup>
         <optgroup label="HAM Radio">
           <option value="43017">AO-91 (AMSAT Fox-1B)</option>
@@ -197,8 +207,14 @@ static const char SETUP_PAGE[] PROGMEM = R"HTMLPAGE(
         </optgroup>
         <optgroup label="Other">
           <option value="20580">Hubble Space Telescope</option>
+          <option value="0">Custom &mdash; enter NORAD number&hellip;</option>
         </optgroup>
       </select>
+      <div id="csat_div" style="display:none;margin-top:8px;">
+        <label>NORAD Catalogue Number</label>
+        <input type="number" name="sat_custom" id="sat_custom" min="1" max="999999" placeholder="e.g. 25544"/>
+        <p class="hint">Find NORAD numbers at celestrak.org or heavens-above.com</p>
+      </div>
     </div>
 
     <div class="card">
@@ -253,6 +269,38 @@ static const char SETUP_PAGE[] PROGMEM = R"HTMLPAGE(
       e.type = e.type === 'password' ? 'text' : 'password';
       b.textContent = e.type === 'password' ? 'Show' : 'Hide';
     }
+    function toggleCustomSat(sel) {
+      document.getElementById('csat_div').style.display = sel.value === '0' ? 'block' : 'none';
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      fetch('/config.json').then(function(r){ return r.json(); }).then(function(cfg) {
+        if (cfg.wifi_ssid) document.querySelector('[name=wifi_ssid]').value = cfg.wifi_ssid;
+        ['obs_lat','obs_lon','obs_alt','beep_aos','page_dur'].forEach(function(k) {
+          var el = document.querySelector('[name='+k+']');
+          if (el && cfg[k] !== undefined) el.value = cfg[k];
+        });
+        ['beep_tca','seg_clock','iss_crew','auto_page'].forEach(function(k) {
+          var el = document.getElementById(k);
+          if (el) el.checked = !!cfg[k];
+        });
+        ['clock_color','ghost_color'].forEach(function(k) {
+          var el = document.querySelector('[name='+k+']');
+          if (el && cfg[k]) el.value = cfg[k];
+        });
+        var sel = document.getElementById('sat_num');
+        if (sel && cfg.sat_num !== undefined) {
+          var found = false;
+          for (var i = 0; i < sel.options.length; i++) {
+            if (parseInt(sel.options[i].value) === cfg.sat_num) { sel.selectedIndex = i; found = true; break; }
+          }
+          if (!found) {
+            sel.value = '0'; toggleCustomSat(sel);
+            var csat = document.getElementById('sat_custom');
+            if (csat) csat.value = cfg.sat_num;
+          }
+        }
+      }).catch(function(){});
+    });
   </script>
 </body>
 </html>
@@ -314,6 +362,54 @@ static void showSetupScreen(TFT_eSPI &tft) {
     cprint("Device will reboot when done.",        TFT_LIGHTGREY, 232, 2);
 }
 
+// ── Shared save handler ────────────────────────────────────────────────────────
+
+static void handleSave(AsyncWebServerRequest *request) {
+    Preferences p;
+    p.begin(PROV_NVS_NS, false);
+
+    auto str = [&](const char *key, const char *def) -> String {
+        return request->hasParam(key, true) ? request->getParam(key, true)->value() : def;
+    };
+    auto num = [&](const char *key, int def) -> int {
+        return request->hasParam(key, true) ? request->getParam(key, true)->value().toInt() : def;
+    };
+    auto has = [&](const char *key) -> bool {
+        return request->hasParam(key, true);
+    };
+
+    int satNum = num("sat_num", 25544);
+    if (satNum == 0) satNum = num("sat_custom", 25544);
+
+    p.putString("wifi_ssid",   str("wifi_ssid",   ""));
+    { String pw = str("wifi_pass", ""); if (pw.length() > 0) p.putString("wifi_pass", pw); }
+    p.putDouble("obs_lat",     str("obs_lat",     "0").toDouble());
+    p.putDouble("obs_lon",     str("obs_lon",     "0").toDouble());
+    p.putDouble("obs_alt",     str("obs_alt",     "0").toDouble());
+    p.putUInt  ("sat_num",     satNum);
+    p.putUInt  ("beep_aos",    num("beep_aos",    15));
+    p.putBool  ("beep_tca",    has("beep_tca"));
+    p.putBool  ("seg_clock",   has("seg_clock"));
+    p.putBool  ("iss_crew",    has("iss_crew"));
+    p.putUInt  ("clock_color", hexToRgb565(str("clock_color", "#F8D400")));
+    p.putUInt  ("ghost_color", hexToRgb565(str("ghost_color", "#484848")));
+    p.putBool  ("auto_page",   has("auto_page"));
+    p.putUInt  ("page_dur",    num("page_dur",    6) * 1000);
+    p.putBool  ("configured",  true);
+
+    p.end();
+
+    Serial.println("[provisioner] config saved:");
+    Serial.printf("  ssid=%s lat=%.4f lon=%.4f sat=%d\n",
+        str("wifi_ssid","").c_str(),
+        str("obs_lat","0").toDouble(),
+        str("obs_lon","0").toDouble(),
+        satNum);
+
+    request->send(200, "text/html", REBOOT_PAGE);
+    shouldReboot = true;
+}
+
 // ── Captive portal ─────────────────────────────────────────────────────────────
 
 void startProvisioner(TFT_eSPI &tft) {
@@ -329,48 +425,7 @@ void startProvisioner(TFT_eSPI &tft) {
         request->send(200, "text/html", SETUP_PAGE);
     });
 
-    webServer.on("/save", HTTP_POST, [](AsyncWebServerRequest *request) {
-        Preferences p;
-        p.begin(PROV_NVS_NS, false);
-
-        auto str = [&](const char *key, const char *def) -> String {
-            return request->hasParam(key, true) ? request->getParam(key, true)->value() : def;
-        };
-        auto num = [&](const char *key, int def) -> int {
-            return request->hasParam(key, true) ? request->getParam(key, true)->value().toInt() : def;
-        };
-        auto has = [&](const char *key) -> bool {
-            return request->hasParam(key, true);
-        };
-
-        p.putString("wifi_ssid",   str("wifi_ssid",   ""));
-        p.putString("wifi_pass",   str("wifi_pass",   ""));
-        p.putDouble("obs_lat",     str("obs_lat",     "0").toDouble());
-        p.putDouble("obs_lon",     str("obs_lon",     "0").toDouble());
-        p.putDouble("obs_alt",     str("obs_alt",     "0").toDouble());
-        p.putUInt  ("sat_num",     num("sat_num",     25544));
-        p.putUInt  ("beep_aos",    num("beep_aos",    15));
-        p.putBool  ("beep_tca",    has("beep_tca"));
-        p.putBool  ("seg_clock",   has("seg_clock"));
-        p.putBool  ("iss_crew",    has("iss_crew"));
-        p.putUInt  ("clock_color", hexToRgb565(str("clock_color", "#F8D400")));
-        p.putUInt  ("ghost_color", hexToRgb565(str("ghost_color", "#484848")));
-        p.putBool  ("auto_page",   has("auto_page"));
-        p.putUInt  ("page_dur",    num("page_dur",    6) * 1000);
-        p.putBool  ("configured",  true);
-
-        p.end();
-
-        Serial.println("[provisioner] config saved:");
-        Serial.printf("  ssid=%s lat=%.4f lon=%.4f sat=%d\n",
-            str("wifi_ssid","").c_str(),
-            str("obs_lat","0").toDouble(),
-            str("obs_lon","0").toDouble(),
-            num("sat_num", 25544));
-
-        request->send(200, "text/html", REBOOT_PAGE);
-        shouldReboot = true;
-    });
+    webServer.on("/save", HTTP_POST, [](AsyncWebServerRequest *r) { handleSave(r); });
 
     // Captive portal detection redirects (Android, iOS, Windows)
     auto redir = [](AsyncWebServerRequest *r) { r->redirect("http://192.168.4.1/"); };
@@ -391,6 +446,46 @@ void startProvisioner(TFT_eSPI &tft) {
 
     delay(500);
     ESP.restart();
+}
+
+// ── Persistent config server (runs after WiFi connects) ────────────────────────
+
+void startConfigServer() {
+    webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(200, "text/html", SETUP_PAGE);
+    });
+
+    webServer.on("/config.json", HTTP_GET, [](AsyncWebServerRequest *request) {
+        String json = "{";
+        json += "\"wifi_ssid\":\""   + WIFI_SSID + "\",";
+        json += "\"obs_lat\":"       + String(OBSERVER_LATITUDE,  4) + ",";
+        json += "\"obs_lon\":"       + String(OBSERVER_LONGITUDE, 4) + ",";
+        json += "\"obs_alt\":"       + String((int)OBSERVER_ALTITUDE) + ",";
+        json += "\"sat_num\":"       + String(satelliteCatalogueNumber) + ",";
+        json += "\"beep_aos\":"      + String(beepsNotificationBeforeAOSandLOS) + ",";
+        json += "\"beep_tca\":"      + String(notificationAtTCA      ? "true" : "false") + ",";
+        json += "\"seg_clock\":"     + String(display7DigisStyleClock ? "true" : "false") + ",";
+        json += "\"iss_crew\":"      + String(DISPLAY_ISS_CREW       ? "true" : "false") + ",";
+        json += "\"clock_color\":\"" + rgb565ToHex(clockDigitsColor)         + "\",";
+        json += "\"ghost_color\":\"" + rgb565ToHex(TFT_GHOST_SEGMENT_COLOR)  + "\",";
+        json += "\"auto_page\":"     + String(autoPageChange ? "true" : "false") + ",";
+        json += "\"page_dur\":"      + String(durationBetweenPageChanges / 1000);
+        json += "}";
+        request->send(200, "application/json", json);
+    });
+
+    webServer.on("/save", HTTP_POST, [](AsyncWebServerRequest *r) { handleSave(r); });
+
+    webServer.onNotFound([](AsyncWebServerRequest *r) {
+        r->send(404, "text/plain", "Not found");
+    });
+
+    webServer.begin();
+    Serial.printf("[configServer] running at http://%s/\n", WiFi.localIP().toString().c_str());
+}
+
+bool configServerRebootPending() {
+    return shouldReboot;
 }
 
 #endif // HAS_CAPTIVE_PORTAL

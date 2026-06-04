@@ -1,6 +1,7 @@
 #include "provisioner.h"
 #include <Preferences.h>
 #include <WiFi.h>
+#include <ESPmDNS.h>
 #include <HTTPClient.h>
 #include <time.h>
 #include <NTPClient.h>
@@ -639,7 +640,7 @@ void connectToWiFi()
                 TFTprint("");
                 TFTprint("Failed to connect to both networks", TFT_RED);
                 TFTprint("");
-                TFTprint("Check your credentials in config.h", TFT_YELLOW);
+                TFTprint("Check your WiFi credentials in Settings", TFT_YELLOW);
                 TFTprint("");
                 delay(3000);
                 TFTprint("Retrying...", TFT_YELLOW);
@@ -3198,6 +3199,12 @@ void setup()
 #endif
     displaySysInfo();
     connectToWiFi();
+#ifdef HAS_CAPTIVE_PORTAL
+    MDNS.begin("iss-tracker");
+    startConfigServer();
+    TFTprint("Settings: http://iss-tracker.local", TFT_CYAN);
+    TFTprint("          http://" + WiFi.localIP().toString(), TFT_CYAN);
+#endif
     delay(bootingMessagePause);
     getTimezoneData();
     delay(bootingMessagePause);
@@ -3238,6 +3245,9 @@ void setup()
 
 void loop()
 {
+#ifdef HAS_CAPTIVE_PORTAL
+    if (configServerRebootPending()) { delay(500); ESP.restart(); }
+#endif
     // Updating TLE elements
     const unsigned long TLEupdateInterval = 10 * 3600 * 1000;           // every 10 hours
     static unsigned long previousMillisForTLEupdateInterval = millis(); // Store the last time the function was executed
