@@ -16,7 +16,7 @@
 #include <WebSocketsServer.h>
 // Version Info
 const char *VERSION_NUMBER = "Perpetual Beta";
-const char *VERSION_DATE = "05.06.26";
+const char *VERSION_DATE = "06.06.26";
 
 // ── Configuration defaults ─────────────────────────────────────────────────────
 // On CYD builds these are overwritten at boot by loadConfig() from NVS.
