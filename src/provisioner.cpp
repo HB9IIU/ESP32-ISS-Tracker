@@ -28,6 +28,8 @@ bool hasValidConfig() {
 
 extern String   WIFI_SSID;
 extern String   WIFI_PASSWORD;
+extern String   WIFI_SSID_ALT;
+extern String   WIFI_PASSWORD_ALT;
 extern int      satelliteCatalogueNumber;
 extern double   OBSERVER_LATITUDE;
 extern double   OBSERVER_LONGITUDE;
@@ -41,13 +43,16 @@ extern bool     DISPLAY_ISS_CREW;
 extern int      autoPageChange;
 extern int      durationBetweenPageChanges;
 extern int      tftRotation;
+extern int      bootingMessagePause;
 
 void loadConfig() {
     Preferences p;
     p.begin(PROV_NVS_NS, true);
 
-    WIFI_SSID                        = p.getString("wifi_ssid",   WIFI_SSID);
-    WIFI_PASSWORD                    = p.getString("wifi_pass",   WIFI_PASSWORD);
+    WIFI_SSID                        = p.getString("wifi_ssid",     WIFI_SSID);
+    WIFI_PASSWORD                    = p.getString("wifi_pass",     WIFI_PASSWORD);
+    WIFI_SSID_ALT                    = p.getString("wifi_ssid_alt", WIFI_SSID_ALT);
+    WIFI_PASSWORD_ALT                = p.getString("wifi_pass_alt", WIFI_PASSWORD_ALT);
     OBSERVER_LATITUDE                = p.getDouble("obs_lat",     OBSERVER_LATITUDE);
     OBSERVER_LONGITUDE               = p.getDouble("obs_lon",     OBSERVER_LONGITUDE);
     OBSERVER_ALTITUDE                = p.getDouble("obs_alt",     OBSERVER_ALTITUDE);
@@ -61,6 +66,7 @@ void loadConfig() {
     autoPageChange                   = p.getBool  ("auto_page",   autoPageChange);
     durationBetweenPageChanges       = p.getUInt  ("page_dur",    durationBetweenPageChanges);
     tftRotation                      = p.getInt   ("tft_rot",     tftRotation);
+    bootingMessagePause              = p.getUInt  ("boot_pause",  bootingMessagePause);
 
     p.end();
 
@@ -144,8 +150,22 @@ static const char SETUP_PAGE[] PROGMEM = R"HTMLPAGE(
       <label>Password</label>
       <div class="pw">
         <input type="password" name="wifi_pass" id="pw" placeholder="Leave blank to keep current password"/>
-        <button type="button" onclick="t()">Show</button>
+        <button type="button" onclick="t('pw')">Show</button>
       </div>
+      <details id="alt_wifi" style="margin-top:14px;">
+        <summary style="cursor:pointer;color:var(--accent);font-size:.85rem;user-select:none;">
+          &#9654; Alternate WiFi <span style="color:#999;">(optional &mdash; used if primary is unreachable)</span>
+        </summary>
+        <div style="margin-top:8px;">
+          <label>Alternate network name (SSID)</label>
+          <input type="text" name="wifi_ssid_alt" placeholder="Backup WiFi network"/>
+          <label>Alternate password</label>
+          <div class="pw">
+            <input type="password" name="wifi_pass_alt" id="pw2" placeholder="Leave blank to keep current password"/>
+            <button type="button" onclick="t('pw2')">Show</button>
+          </div>
+        </div>
+      </details>
     </div>
 
     <div class="card">
@@ -257,14 +277,21 @@ static const char SETUP_PAGE[] PROGMEM = R"HTMLPAGE(
       </div>
       <label>Page change interval (seconds)</label>
       <input type="number" name="page_dur" value="6" min="1" max="60"/>
+      <label>Boot message speed</label>
+      <select name="boot_pause" id="boot_pause">
+        <option value="1000">Fast &mdash; 1 second</option>
+        <option value="2000">Normal &mdash; 2 seconds</option>
+        <option value="5000">Slow &mdash; 5 seconds</option>
+        <option value="10000">Very slow &mdash; 10 seconds</option>
+      </select>
     </div>
 
     <button type="submit" class="save">Save &amp; Reboot</button>
   </form>
 
   <script>
-    function t() {
-      var e = document.getElementById('pw');
+    function t(id) {
+      var e = document.getElementById(id);
       var b = e.nextElementSibling;
       e.type = e.type === 'password' ? 'text' : 'password';
       b.textContent = e.type === 'password' ? 'Show' : 'Hide';
@@ -287,6 +314,11 @@ static const char SETUP_PAGE[] PROGMEM = R"HTMLPAGE(
           var el = document.querySelector('[name='+k+']');
           if (el && cfg[k]) el.value = cfg[k];
         });
+        if (cfg.boot_pause !== undefined) document.getElementById('boot_pause').value = cfg.boot_pause;
+        if (cfg.wifi_ssid_alt) {
+          document.querySelector('[name=wifi_ssid_alt]').value = cfg.wifi_ssid_alt;
+          document.getElementById('alt_wifi').open = true;
+        }
         var sel = document.getElementById('sat_num');
         if (sel && cfg.sat_num !== undefined) {
           var found = false;
@@ -381,8 +413,10 @@ static void handleSave(AsyncWebServerRequest *request) {
     int satNum = num("sat_num", 25544);
     if (satNum == 0) satNum = num("sat_custom", 25544);
 
-    p.putString("wifi_ssid",   str("wifi_ssid",   ""));
-    { String pw = str("wifi_pass", ""); if (pw.length() > 0) p.putString("wifi_pass", pw); }
+    p.putString("wifi_ssid",     str("wifi_ssid",     ""));
+    { String pw = str("wifi_pass", "");     if (pw.length() > 0) p.putString("wifi_pass",     pw); }
+    p.putString("wifi_ssid_alt", str("wifi_ssid_alt", ""));
+    { String pw = str("wifi_pass_alt", ""); if (pw.length() > 0) p.putString("wifi_pass_alt", pw); }
     p.putDouble("obs_lat",     str("obs_lat",     "0").toDouble());
     p.putDouble("obs_lon",     str("obs_lon",     "0").toDouble());
     p.putDouble("obs_alt",     str("obs_alt",     "0").toDouble());
@@ -395,6 +429,7 @@ static void handleSave(AsyncWebServerRequest *request) {
     p.putUInt  ("ghost_color", hexToRgb565(str("ghost_color", "#484848")));
     p.putBool  ("auto_page",   has("auto_page"));
     p.putUInt  ("page_dur",    num("page_dur",    6) * 1000);
+    p.putUInt  ("boot_pause",  num("boot_pause",  1000));
     p.putBool  ("configured",  true);
 
     p.end();
@@ -457,7 +492,8 @@ void startConfigServer() {
 
     webServer.on("/config.json", HTTP_GET, [](AsyncWebServerRequest *request) {
         String json = "{";
-        json += "\"wifi_ssid\":\""   + WIFI_SSID + "\",";
+        json += "\"wifi_ssid\":\""     + WIFI_SSID     + "\",";
+        json += "\"wifi_ssid_alt\":\"" + WIFI_SSID_ALT + "\",";
         json += "\"obs_lat\":"       + String(OBSERVER_LATITUDE,  4) + ",";
         json += "\"obs_lon\":"       + String(OBSERVER_LONGITUDE, 4) + ",";
         json += "\"obs_alt\":"       + String((int)OBSERVER_ALTITUDE) + ",";
@@ -469,7 +505,8 @@ void startConfigServer() {
         json += "\"clock_color\":\"" + rgb565ToHex(clockDigitsColor)         + "\",";
         json += "\"ghost_color\":\"" + rgb565ToHex(TFT_GHOST_SEGMENT_COLOR)  + "\",";
         json += "\"auto_page\":"     + String(autoPageChange ? "true" : "false") + ",";
-        json += "\"page_dur\":"      + String(durationBetweenPageChanges / 1000);
+        json += "\"page_dur\":"      + String(durationBetweenPageChanges / 1000) + ",";
+        json += "\"boot_pause\":"    + String(bootingMessagePause);
         json += "}";
         request->send(200, "application/json", json);
     });

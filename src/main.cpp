@@ -580,6 +580,29 @@ String determineTLEage(String line1charArray)
     // Serial.println(String(ageHHMM));
     return String(ageHHMM);
 }
+
+#ifdef HAS_CAPTIVE_PORTAL
+static void showWiFiConnectedScreen() {
+    tft.fillScreen(TFT_BLACK);
+    uint16_t accent = tft.color565(0x1a, 0x73, 0xe8);
+
+    auto cprint = [&](const String &s, uint16_t col, int16_t y, uint8_t font) {
+        tft.setTextFont(font);
+        tft.setTextColor(col, TFT_BLACK);
+        tft.setCursor((tft.width() - tft.textWidth(s)) / 2, y);
+        tft.print(s);
+    };
+
+    cprint("Wi-Fi Connected",                           TFT_GREEN,     20,  4);
+    cprint("Network:  " + WiFi.SSID(),                  TFT_WHITE,     75,  2);
+    cprint("Signal:   " + String(WiFi.RSSI()) + " dBm", TFT_WHITE,    103,  2);
+    tft.drawFastHLine(40, 135, tft.width() - 80, accent);
+    cprint("Open in your browser to change settings:",  TFT_LIGHTGREY, 155,  2);
+    cprint("http://iss-tracker.local",                  TFT_CYAN,      185,  4);
+    cprint("http://" + WiFi.localIP().toString(),       TFT_CYAN,      248,  2);
+}
+#endif
+
 void connectToWiFi()
 {
     logWithBoxFrame("Trying to connect to Wifi");
@@ -3202,8 +3225,7 @@ void setup()
 #ifdef HAS_CAPTIVE_PORTAL
     MDNS.begin("iss-tracker");
     startConfigServer();
-    TFTprint("Settings: http://iss-tracker.local", TFT_CYAN);
-    TFTprint("          http://" + WiFi.localIP().toString(), TFT_CYAN);
+    showWiFiConnectedScreen();
 #endif
     delay(bootingMessagePause);
     getTimezoneData();
