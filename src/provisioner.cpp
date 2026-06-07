@@ -203,6 +203,7 @@ static const char SETUP_PAGE[] PROGMEM = R"HTMLPAGE(
           <option value="40940">Fengyun 3D</option>
           <option value="46984">Sentinel-6</option>
           <option value="57166">Meteor M2-3</option>
+          <option value="59051">Meteor M2-4</option>
         </optgroup>
         <optgroup label="HAM Radio">
           <option value="43017">AO-91 (AMSAT Fox-1B)</option>
