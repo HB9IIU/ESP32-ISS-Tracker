@@ -19,8 +19,8 @@ const char *VERSION_NUMBER = "Perpetual Beta";
 const char *VERSION_DATE = "06.06.26";
 
 // ── Configuration defaults ─────────────────────────────────────────────────────
-// On CYD builds these are overwritten at boot by loadConfig() from NVS.
-// On other builds they serve as the active values — edit here as needed.
+// Both builds use HAS_CAPTIVE_PORTAL and overwrite these at boot via loadConfig() from NVS.
+// These values are only used as fallbacks if NVS has no config stored yet.
 
 String WIFI_SSID     = "your-ssid";
 String WIFI_PASSWORD = "your-password";
