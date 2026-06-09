@@ -13,8 +13,11 @@
   <img src="https://img.shields.io/badge/⚡%20OPEN%20WEB%20FLASHER-Click%20Here-blue?style=for-the-badge&logoColor=white" alt="Open Web Flasher" height="50"/>
 </a>
 
-**Plug your CYD board into your PC via USB → click the button above → flash → done.**  
+**Plug your CYD board into your PC via USB → click the button above → flash → done.**
 *Works in Chrome and Edge on Windows, macOS and Linux.*
+
+> **Important:** The web flasher supports the **CYD 4" integrated board only**.
+> If you have a standard ESP32 + external ILI9488 display, you must build and upload using PlatformIO — see [Developer Setup](#developer-setup-platformio) below.
 
 </div>
 
@@ -24,7 +27,7 @@
 
 This project is an **ESP32-based tracking system for the International Space Station (ISS)** — and any other satellite you choose. Unlike systems that rely on external APIs for live position data, this one retrieves only the **Two-Line Elements (TLEs)** and current time from the internet. All orbital calculations are done in real time on the ESP32 itself using the **SGP4 library**, making the solution self-contained and dynamic.
 
-The system predicts and displays **AOS (Acquisition of Signal)**, **TCA (Time of Closest Approach)** and **LOS (Loss of Signal)** for upcoming passes. A 480×320 touchscreen TFT shows polar plots, azimuth/elevation graphs, world map overlays with multi-pass predictions, ISS crew information, and a custom 7-segment clock — all navigable by touch.
+The system predicts and displays **AOS (Acquisition of Signal)**, **TCA (Time of Closest Approach)** and **LOS (Loss of Signal)** for upcoming passes. A 480×320 touchscreen TFT shows six navigable pages: a real-time satellite data page with configurable clock, azimuth/elevation graph, polar pass plot, a table of the next 10 passes, a world map with ground track and multi-pass overlay, and an ISS crew information page.
 
 ---
 
@@ -167,21 +170,20 @@ For those who want to build from source, modify the code, or use the external di
 
    ```ini
    [platformio]
-   default_envs = CHEAP_YELLOW_DISPLAY_4IN   ; CYD 4" board
-   ; default_envs = EXTERNAL_DISPLAY_ILI9488  ; ESP32 + external ILI9488
+   default_envs = EXTERNAL_DISPLAY_ILI9488   ; ESP32 + external ILI9488
+   ; default_envs = CHEAP_YELLOW_DISPLAY_4IN  ; CYD 4" board
    ```
 
    Or build a specific profile explicitly:
 
    ```bash
-   pio run -e CHEAP_YELLOW_DISPLAY_4IN
    pio run -e EXTERNAL_DISPLAY_ILI9488
+   pio run -e CHEAP_YELLOW_DISPLAY_4IN
    ```
 
 4. **Build and upload** using the PlatformIO toolbar (checkmark = build, arrow = upload).
 
-5. **For the CYD build:** configuration is done via the captive portal on first boot — no source code editing needed.  
-   **For the external display build:** edit the defaults at the top of `src/main.cpp` (WiFi credentials, observer location, etc.) before uploading.
+5. **Both builds use the captive portal for configuration** — no source code editing is needed for WiFi credentials or observer location. On first boot the device starts the `ISS-Tracker-Setup` access point and walks you through setup in a browser.
 
 > **Note:** All required libraries are vendored in the `lib/` folder. No additional library installation is needed.
 
@@ -192,18 +194,20 @@ For those who want to build from source, modify the code, or use the external di
 - **Real-time SGP4 orbital calculations** — fully on-device, no position API
 - **Pass prediction** — AOS, TCA, LOS with azimuth, elevation and duration
 - **Multiple display pages** navigable by touch:
-  - 7-segment style clock
+  - Main page: real-time satellite data with 7-segment or classic clock
+  - Azimuth / elevation graph for the current pass
   - Polar pass plot
-  - Azimuth / elevation graph
-  - World map with footprint and multi-pass overlay
-  - ISS crew information
-  - System info page
-- **Audio notifications** — configurable buzzer beeps before AOS/LOS and at TCA
-- **WebSocket output** — for driving an external azimuth/elevation rotor
-- **Any satellite** — track ISS, NOAA weather satellites, HAM radio birds, Hubble, and more by catalogue number
+  - Table of the next 10 passes
+  - World map with ground track, footprint and multi-pass overlay
+  - ISS crew information (can be disabled in settings)
+- **Audio notifications** — configurable buzzer beeps before AOS/LOS and at TCA; speaker can also be toggled on/off live with a tap on the main screen
+- **WebSocket output** — for driving an external azimuth/elevation rotor (port 4235)
+- **Curated satellite list** — ISS, NOAA weather satellites, Meteor M2, Sentinel-6, HAM radio birds, Hubble Space Telescope, and more; or enter any NORAD catalogue number manually
+- **Dual WiFi** — configure a primary and an optional backup WiFi network; the device falls back to the alternate automatically if the primary is unreachable
+- **Auto page change** — optionally cycle through display pages automatically at a configurable interval
 - **Automatic timezone** — retrieved via [Open-Meteo](https://open-meteo.com/), no API key required
 - **TLE caching** — orbital elements stored in flash, available offline after first fetch
-- **Captive portal provisioner** (CYD) — browser-based first-boot configuration, no code editing
+- **Captive portal provisioner** — browser-based first-boot configuration for both hardware variants, no code editing
 - **Persistent settings server** — change any setting at any time via `http://iss-tracker.local`, no factory reset needed
 - **Factory reset** — hold touch during splash screen to wipe and reconfigure
 
