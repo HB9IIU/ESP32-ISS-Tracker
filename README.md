@@ -55,7 +55,7 @@ The system predicts and displays **AOS (Acquisition of Signal)**, **TCA (Time of
 
 ---
 
-## First-Boot Setup (CYD)
+## First-Boot Setup
 
 After flashing, the device walks you through setup automatically — no computer needed after this point.
 
@@ -267,5 +267,3 @@ Contact: daniel at hb9iiu.com
 ---
 
 *This is my corner of GitHub — still learning, always tinkering. Feedback and suggestions are always welcome. Thanks for stopping by! 🙌*
-
-![ESP32-1](https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/Misc/ESP32-1.png)
