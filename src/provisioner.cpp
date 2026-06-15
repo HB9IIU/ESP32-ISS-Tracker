@@ -222,6 +222,7 @@ static const char SETUP_PAGE[] PROGMEM = R"HTMLPAGE(
         </optgroup>
         <optgroup label="Other">
           <option value="20580">Hubble Space Telescope</option>
+          <option value="43700">OSCAR 100 (Es'hail-2) &mdash; GEO</option>
           <option value="0">Custom &mdash; enter NORAD number&hellip;</option>
         </optgroup>
       </select>

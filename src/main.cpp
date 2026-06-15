@@ -144,6 +144,9 @@ void drawSpeakerON(int x, int y);
 void drawSpeakerOFF(int x, int y);
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length);
 void startWebSocket();
+bool hasValidNextPassWindow();
+bool isLikelyGeostationary();
+void drawNoPassInfoPage(const String &title, const String &detail);
 //---------------------------------------------------------------------------------------------------
 void displaySysInfo()
 {
@@ -962,6 +965,24 @@ void displayMainPage()
     {
         calculateNextPass(); // only if below horizon, otherwise we get a problem with next pass when visible
 
+        if (!hasValidNextPassWindow())
+        {
+            tft.fillRect(0, 295, 480, 50, TFT_BLACK);
+            tft.setCursor(18, lowerBannerY);
+            tft.setTextColor(TFT_CYAN, TFT_BLACK);
+            if (isLikelyGeostationary())
+            {
+                tft.print("No AOS/LOS pass for GEO orbit");
+            }
+            else
+            {
+                tft.print("No pass prediction available");
+            }
+            first_time_below = true;
+            first_time_above = true;
+            return;
+        }
+
         int shifting = 50;
         if (first_time_below == true || refreshBecauseReturningFromOtherPage == true)
         {
@@ -983,6 +1004,25 @@ void displayMainPage()
 
     if (sat.satEl > 0)
     {
+        if (!hasValidNextPassWindow())
+        {
+            int shifting = 30;
+            tft.fillRect(0, 295, 480, 50, TFT_BLACK);
+            tft.setCursor(shifting, lowerBannerY);
+            tft.setTextColor(TFT_CYAN, TFT_BLACK);
+            if (isLikelyGeostationary())
+            {
+                tft.print("Satellite is continuously visible");
+            }
+            else
+            {
+                tft.print("Satellite currently visible");
+            }
+            first_time_below = true;
+            first_time_above = true;
+            return;
+        }
+
         int shifting = 40;
         if (first_time_above == true || refreshBecauseReturningFromOtherPage == true)
         {
@@ -1949,8 +1989,69 @@ void calculateNextPass()
     }
     else
     {
-        Serial.println("No pass found within specified parameters.");
+        if (isLikelyGeostationary())
+        {
+            Serial.println("No pass found: GEO-like orbit has no discrete AOS/LOS pass window.");
+        }
+        else
+        {
+            Serial.println("No pass found within specified parameters.");
+        }
     }
+}
+
+bool hasValidNextPassWindow()
+{
+    return (nextPassStart > 0 && nextPassEnd > nextPassStart);
+}
+
+bool isLikelyGeostationary()
+{
+    String tleLine2 = String(TLEline2CharArray);
+    if (tleLine2.length() >= 63)
+    {
+        float meanMotion = tleLine2.substring(52, 63).toFloat(); // rev/day
+        if (meanMotion > 0.95f && meanMotion < 1.05f)
+        {
+            return true;
+        }
+    }
+
+    // Runtime fallback: GEO satellites orbit at roughly 35,786 km altitude.
+    if (sat.satAlt > 30000.0f)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+void drawNoPassInfoPage(const String &title, const String &detail)
+{
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextFont(4);
+    tft.setTextColor(TFT_GOLD, TFT_BLACK);
+    tft.setCursor((tft.width() - tft.textWidth(title)) / 2, 30);
+    tft.print(title);
+
+    tft.setTextFont(2);
+    tft.setTextColor(TFT_CYAN, TFT_BLACK);
+    tft.setCursor((tft.width() - tft.textWidth(detail)) / 2, 75);
+    tft.print(detail);
+
+    sat.findsat(unixtime);
+    String az = "Az: " + String(sat.satAz, 1) + " deg";
+    String el = "El: " + String(sat.satEl, 1) + " deg";
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setCursor((tft.width() - tft.textWidth(az)) / 2, 125);
+    tft.print(az);
+    tft.setCursor((tft.width() - tft.textWidth(el)) / 2, 150);
+    tft.print(el);
+
+    String hint = "Use map page for GEO footprint";
+    tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+    tft.setCursor((tft.width() - tft.textWidth(hint)) / 2, 210);
+    tft.print(hint);
 }
 String formatTimeOnly(unsigned long epochTime, bool isLocal = false)
 {
@@ -2097,6 +2198,12 @@ void beepAtTCA()
 
 void displayAzElPlotPage()
 {
+    if (!hasValidNextPassWindow())
+    {
+        drawNoPassInfoPage("Az/El Plot", isLikelyGeostationary() ? "GEO: no discrete pass window" : "No valid pass prediction");
+        return;
+    }
+
     const int stepsInSeconds = 1; // Step size in seconds
     const int PLOT_X = 38;        // Left margin
     const int PLOT_Y = 20;        // Top margin
@@ -2241,6 +2348,11 @@ void displayAzElPlotPage()
 }
 void displayPolarPlotPage()
 {
+    if (!hasValidNextPassWindow())
+    {
+        drawNoPassInfoPage("Polar Plot", isLikelyGeostationary() ? "GEO: no discrete pass window" : "No valid pass prediction");
+        return;
+    }
 
     getOrbitNumber(nextPassStart);
     // Clear the area to redraw
@@ -2535,6 +2647,12 @@ void retrieveTLEelementsForSatellite(int catalogNumber, bool displayOnTft)
 }
 void displayTableNext10Passes()
 {
+    if (isLikelyGeostationary())
+    {
+        drawNoPassInfoPage("Pass Table", "GEO satellite has no pass list");
+        return;
+    }
+
     passinfo overpass;
     // Initialize prediction start point
     sat.initpredpoint(unixtime + 10 * 60, 0); // adding 10 minutes to ensure that next pass is not in the past (experimental)
@@ -2730,14 +2848,40 @@ void displayMapWithMultiPasses()
     Serial.print(", ");
     Serial.println(startY);
 
-    // STEP 3: Plot the satellite's path for three orbits
+    bool geoLike = isLikelyGeostationary();
+
+    // STEP 3: Plot the satellite's path
     unixtime = timeClient.getEpochTime(); // Get the current UNIX timestamp
 
     unsigned long t = unixtime;
     int passageCount = 0;
     bool hasLeftStartX = false;
+    int sampleCount = 0;
+    const int maxSamples = 20000; // safety cap to prevent getting stuck on unusual orbits
 
-    while (passageCount < 3)
+    if (geoLike)
+    {
+        const unsigned long horizonSeconds = 24UL * 3600UL;
+        const int geoStep = 120;
+        for (unsigned long dt = 0; dt <= horizonSeconds; dt += geoStep)
+        {
+            sat.findsat(unixtime + dt);
+            float lat = sat.satLat;
+            float lon = sat.satLon;
+
+            int x = map(lon, -180, 180, 0, mapWidth);
+            int y = map(lat, 90, -90, 0, mapHeight) + mapOffsetY;
+            tft.drawPixel(x, y, TFT_CYAN);
+        }
+
+        tft.setTextFont(2);
+        tft.setTextColor(TFT_CYAN, TFT_BLACK);
+        tft.setCursor(6, mapOffsetY + mapHeight - 12);
+        tft.print("GEO 24h track");
+        return;
+    }
+
+    while (passageCount < 3 && sampleCount < maxSamples)
     {
         sat.findsat(t);
         float lat = sat.satLat;
@@ -2769,6 +2913,12 @@ void displayMapWithMultiPasses()
         }
 
         t += timeStep; // Increment time step
+        sampleCount++;
+    }
+
+    if (sampleCount >= maxSamples)
+    {
+        Serial.println("Map plot safety stop reached before 3 passages.");
     }
 }
 void displayEquirectangularWorlsMap()
@@ -2787,7 +2937,8 @@ void displayEquirectangularWorlsMap()
         tft.endWrite();
     }
 
-    String text = String(SatNameCharArray) + " Next 3 Passes";
+    String text = isLikelyGeostationary() ? String(SatNameCharArray) + " GEO 24h Track"
+                                          : String(SatNameCharArray) + " Next 3 Passes";
 
     // Set the text font to FONT4
     tft.setTextFont(4);
@@ -3226,8 +3377,10 @@ void setup()
     MDNS.begin("iss-tracker");
     startConfigServer();
     showWiFiConnectedScreen();
-#endif
+    delay(4000);
+#else
     delay(bootingMessagePause);
+#endif
     getTimezoneData();
     delay(bootingMessagePause);
     while (!syncTimeFromNTP(true))
