@@ -1,5 +1,11 @@
+> **⚠️ This repository is no longer maintained.**
+> I have moved to a new project using an ESP32-S3 with a Waveshare integrated display:
+> **[ESP32_S3_INTEGRATED_DISPLAY_SAT_TRACKER](https://github.com/HB9IIU/ESP32_S3_INTEGRATED_DISPLAY_SAT_TRACKER)**
+
+---
+
 # HB9IIU ISS Tracker
-### Real-Time Satellite Tracking on an ESP32 — No API Key Required
+### Real-Time Satellite Tracking on an ESP32
 
 ---
 
@@ -155,9 +161,7 @@ For those who want to build from source, modify the code, or use the external di
 
 1. **Download the repository:**
 
-   ```bash
    git clone https://github.com/HB9IIU/ESP32-ISS-Tracker.git
-   ```
    Or download the ZIP from GitHub and unzip it.
 
 2. **Open the project folder in VS Code.**  
@@ -165,18 +169,15 @@ For those who want to build from source, modify the code, or use the external di
 
 3. **Select your build profile** in `platformio.ini`:
 
-   ```ini
    [platformio]
    default_envs = CHEAP_YELLOW_DISPLAY_4IN   ; CYD 4" board
    ; default_envs = EXTERNAL_DISPLAY_ILI9488  ; ESP32 + external ILI9488
-   ```
 
    Or build a specific profile explicitly:
 
-   ```bash
    pio run -e CHEAP_YELLOW_DISPLAY_4IN
    pio run -e EXTERNAL_DISPLAY_ILI9488
-   ```
+```raw
 
 4. **Build and upload** using the PlatformIO toolbar (checkmark = build, arrow = upload).
 
@@ -265,3 +266,5 @@ Contact: daniel at hb9iiu.com
 *This is my corner of GitHub — still learning, always tinkering. Feedback and suggestions are always welcome. Thanks for stopping by! 🙌*
 
 ![ESP32-1](https://raw.githubusercontent.com/HB9IIU/ESP32-ISS-Tracker/main/doc/Misc/ESP32-1.png)
+
+```
