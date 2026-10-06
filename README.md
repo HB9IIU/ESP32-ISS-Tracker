@@ -171,12 +171,14 @@ For those who want to build from source, modify the code, or use the external di
 
    [platformio]
    default_envs = CHEAP_YELLOW_DISPLAY_4IN   ; CYD 4" board
-   ; default_envs = EXTERNAL_DISPLAY_ILI9488  ; ESP32 + external ILI9488
+   ; default_envs = ILI9488_DISPLAY_STANDARD_ESP  ; Standard ESP32 + ILI9488, TFT_DC=5
+   ; default_envs = ILI9488_DISPLAY_ESP_WITH_EXTERNAL_ANTENNA  ; ESP32U + ILI9488, TFT_DC=0
 
    Or build a specific profile explicitly:
 
    pio run -e CHEAP_YELLOW_DISPLAY_4IN
-   pio run -e EXTERNAL_DISPLAY_ILI9488
+   pio run -e ILI9488_DISPLAY_STANDARD_ESP
+   pio run -e ILI9488_DISPLAY_ESP_WITH_EXTERNAL_ANTENNA
 ```raw
 
 4. **Build and upload** using the PlatformIO toolbar (checkmark = build, arrow = upload).
