@@ -2586,8 +2586,8 @@ void displayPolarPlotPage()
 }
 void retrieveTLEelementsForSatellite(int catalogNumber, bool displayOnTft)
 {
-    logWithBoxFrame("Retrieving first of newer TLE Elements from celestrak.com");
-    String url = "http://www.celestrak.org/NORAD/elements/gp.php?CATNR=" + String(catalogNumber) + "&FORMAT=TLE";
+    logWithBoxFrame("Retrieving first of newer TLE Elements from celestrak.org");
+    String url = "https://celestrak.org/NORAD/elements/gp.php?CATNR=" + String(catalogNumber) + "&FORMAT=TLE";
     HTTPClient http;
     http.begin(url);
     int httpResponseCode = http.GET();
