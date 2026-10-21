@@ -1,6 +1,7 @@
 Import("env")
 
 import atexit
+import filecmp
 import os
 import shutil
 import json
@@ -25,7 +26,7 @@ def copy_firmware_to_release(source, target, env):
         src = os.path.join(build_dir, filename)
         dst = os.path.join(firmware_dir, filename)
         if os.path.exists(src):
-            if not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst):
+            if not os.path.exists(dst) or not filecmp.cmp(src, dst, shallow=False):
                 shutil.copy2(src, dst)
                 print(f"  [firmware] copied {filename}")
                 copied_any = True
